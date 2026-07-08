@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import TopBar from '@/components/TopBar';
-import { DIGCOMP_AREAS as AREAS } from '@/lib/content';
+import { AREAS } from '@/lib/content';
 import { getStudent, setStudent, getProgressMap } from '@/lib/progress';
 import { computeStats, getStreak } from '@/lib/gamify';
 
@@ -37,7 +37,7 @@ export default function Profile() {
       { icon: '🚀', title: 'ก้าวแรก', sub: 'เรียนจบบทแรก', on: s.completed > 0, grad: 'linear-gradient(135deg,#5CD35B,#38A93A)', edge: '#2E8B30' },
       { icon: '⭐', title: 'นักสะสมดาว', sub: 'สะสม 15 ดาว', on: s.stars >= 15, grad: 'linear-gradient(135deg,#FFC24B,#F0982E)', edge: '#D07E1E' },
       { icon: '🔥', title: 'สตรีค 7 วัน', sub: 'เรียน 7 วันติด', on: getStreak() >= 7, grad: 'linear-gradient(135deg,#FF8A5C,#F0662E)', edge: '#C74E1E' },
-      ...AREAS.map((a) => ({ icon: a.mascot, title: `จบด้าน ${a.num}`, sub: a.title.slice(0, 14), on: areaDone(a), grad: 'linear-gradient(135deg,#4FB0FF,#2E9BFF)', edge: '#2277CC' })),
+      ...AREAS.map((a) => ({ icon: a.mascot, title: a.num === 0 ? 'จบพื้นฐาน' : `จบด้าน ${a.num}`, sub: a.title.slice(0, 14), on: areaDone(a), grad: 'linear-gradient(135deg,#4FB0FF,#2E9BFF)', edge: '#2277CC' })),
     ];
     setBadges(b);
   }, []);

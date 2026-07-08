@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import TopBar from '@/components/TopBar';
 import StudentLogin from '@/components/StudentLogin';
-import { AREAS, DIGCOMP_AREAS } from '@/lib/content';
+import { AREAS } from '@/lib/content';
 import { getStudent, clearStudent, type Student } from '@/lib/progress';
 import { authClient } from '@/lib/auth/client';
 import { areaStarsFor, touchStreak, getStreak, getDaily } from '@/lib/gamify';
@@ -23,7 +23,7 @@ export default function Home() {
   const [streak, setStreak] = useState(0);
   const [daily, setDaily] = useState({ done: 0, goal: 3 });
   const [pct, setPct] = useState<Record<number, number>>({});
-  const [digcompStars, setDigcompStars] = useState(0);
+  const [totalStars, setTotalStars] = useState(0);
   const [student, setStudentState] = useState<Student | null>(null);
 
   function loadStats() {
@@ -32,7 +32,7 @@ export default function Home() {
     const m: Record<number, number> = {};
     for (const a of AREAS) m[a.num] = Math.round((areaStarsFor(a.chapters.map((c) => c.code)) / (a.chapters.length * 3)) * 100);
     setPct(m);
-    setDigcompStars(DIGCOMP_AREAS.reduce((s, a) => s + areaStarsFor(a.chapters.map((c) => c.code)), 0));
+    setTotalStars(AREAS.reduce((s, a) => s + areaStarsFor(a.chapters.map((c) => c.code)), 0));
   }
 
   useEffect(() => {
@@ -70,7 +70,6 @@ export default function Home() {
     );
   }
 
-  const basics = AREAS.find((a) => a.num === 0);
   const name = student?.name ?? null;
 
   return (
@@ -106,29 +105,16 @@ export default function Home() {
               <StudentLogin onLoggedIn={() => window.location.reload()} />
             )}
 
-            {basics && (
-              <div className="section">
-                <div className="sec-head">
-                  <span className="sec-ico" style={{ background: 'linear-gradient(135deg,#DCE9FF,#A9CCFF)', boxShadow: '0 5px 0 #B9D4FF' }}>🚀</span>
-                  <div style={{ flex: 1 }}>
-                    <h3 className="sec-title">เริ่มต้น: พื้นฐานคอมพิวเตอร์</h3>
-                    <p className="sec-desc">รู้จักเครื่อง ใช้เมาส์ และแป้นพิมพ์ ก่อนเริ่มบทอื่น</p>
-                  </div>
-                </div>
-                <div className="grid3">{areaCard(basics)}</div>
-              </div>
-            )}
-
             <div className="section">
               <div className="sec-head">
                 <span className="sec-ico" style={{ background: 'linear-gradient(135deg,#DFF6E4,#B7ECC4)', boxShadow: '0 5px 0 #B7ECC4' }}>📚</span>
                 <div style={{ flex: 1 }}>
-                  <h3 className="sec-title">บทเรียนทักษะดิจิทัล</h3>
-                  <p className="sec-desc">DigComp 3.0 · 5 ด้าน · 21 สมรรถนะ · มีเสียงอ่านทุกบท</p>
+                  <h3 className="sec-title">คอร์สทักษะคอมพิวเตอร์</h3>
+                  <p className="sec-desc">เริ่มจากพื้นฐาน แล้วเรียน DigComp 3.0 ครบทั้ง 5 ด้าน · มีเสียงอ่านทุกบท</p>
                 </div>
-                <span className="sec-count" style={{ color: '#fff', background: '#38A93A', boxShadow: '0 4px 0 #2E8B30' }}>{digcompStars} / 63 ⭐</span>
+                <span className="sec-count" style={{ color: '#fff', background: '#38A93A', boxShadow: '0 4px 0 #2E8B30' }}>{totalStars} / 72 ⭐</span>
               </div>
-              <div className="grid3">{DIGCOMP_AREAS.map(areaCard)}</div>
+              <div className="grid3">{AREAS.map(areaCard)}</div>
             </div>
 
             <div style={{ textAlign: 'center', marginTop: 30, fontSize: 13, color: 'var(--muted2)', lineHeight: 1.8 }}>
