@@ -1,3 +1,5 @@
+import { withBotId } from 'botid/next/config';
+
 /** @type {import('next').NextConfig} */
 const securityHeaders = [
   // Non-breaking CSP: blocks framing/plugins/base-uri injection without
@@ -16,4 +18,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withBotId(nextConfig);

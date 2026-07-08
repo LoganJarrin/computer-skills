@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkBotId } from 'botid/server';
 import { isAdmin } from '@/lib/auth/admins';
 import { rateLimit, clientKey } from '@/lib/ratelimit';
 
@@ -7,6 +8,9 @@ import { rateLimit, clientKey } from '@/lib/ratelimit';
 export async function POST(req: NextRequest) {
   if (!rateLimit(`register:${clientKey(req)}`, 10, 60_000))
     return NextResponse.json({ ok: false, error: 'too many requests' }, { status: 429 });
+  let isBot = false;
+  try { isBot = (await checkBotId()).isBot; } catch {}
+  if (isBot) return NextResponse.json({ ok: false, error: 'ตรวจพบการใช้งานผิดปกติ' }, { status: 403 });
 
   let b: any;
   try { b = await req.json(); } catch { return NextResponse.json({ ok: false }, { status: 400 }); }

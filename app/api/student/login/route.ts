@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkBotId } from 'botid/server';
 import { getSql } from '@/lib/db';
 import { studentPassword, isValidPin } from '@/lib/students';
 import { rateLimit, clientKey } from '@/lib/ratelimit';
@@ -9,6 +10,10 @@ import { rateLimit, clientKey } from '@/lib/ratelimit';
 export async function POST(req: NextRequest) {
   if (!rateLimit(`stulogin:${clientKey(req)}`, 20, 60_000))
     return NextResponse.json({ ok: false, error: 'ลองบ่อยเกินไป รอสักครู่' }, { status: 429 });
+  // BotID: block automated PIN brute-force. Fail open — never lock out real kids.
+  let isBot = false;
+  try { isBot = (await checkBotId()).isBot; } catch {}
+  if (isBot) return NextResponse.json({ ok: false, error: 'ตรวจพบการใช้งานผิดปกติ กรุณาเข้าผ่านเบราว์เซอร์' }, { status: 403 });
   const sql = getSql();
   if (!sql) return NextResponse.json({ ok: false }, { status: 500 });
 
