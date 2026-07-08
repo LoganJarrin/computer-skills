@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ด้านที่ 4 · ความปลอดภัยและความเป็นอยู่ที่ดี</title>
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<div class="wrap">
+  <div id="home" class="screen active">
+    <div style="text-align:center;"><span class="area-pill">DigComp 3.0</span></div>
+    <div class="intro-card">
+      <span class="intro-mascot">🛡️</span>
+      <div class="intro-title"></div>
+      <div class="intro-sub"></div>
+    </div>
+    <div class="ch-list" id="chList"></div>
+    <div class="home-foot">กดที่บทเรียนเพื่อเริ่ม · มีปุ่ม 🔊 ให้กดฟังเสียงทุกข้อความ<br><a href="index.html">← กลับหน้าแรก</a></div>
+  </div>
+
+  <div id="lesson" class="screen">
+    <div class="dc-header" id="dcHeader"></div>
+    <div class="hud">
+      <button class="back-btn" onclick="goHome()" title="กลับ">←</button>
+      <div class="hud-title" id="hudTitle">บทเรียน</div>
+      <div class="hud-score" id="scoreDisp">⭐ 0</div>
+    </div>
+    <div class="prog"><div class="prog-fill" id="progFill"></div></div>
+    <div id="lessonContent"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="btn-next" id="btnNext" onclick="nextSlide()">ต่อไป →</button>
+  </div>
+
+  <div id="results" class="screen">
+    <div class="res-card">
+      <span class="res-icon" id="resTrophy">🏆</span>
+      <div class="res-title" id="resTitle">เยี่ยมมาก!</div>
+      <div class="res-sub" id="resSub">น้องเรียนจบบทนี้แล้ว</div>
+      <div class="res-stats">
+        <div class="rs"><div class="rs-val" id="rsCorrect">0</div><div class="rs-lbl">ตอบถูก</div></div>
+        <div class="rs"><div class="rs-val" id="rsStars">⭐⭐⭐</div><div class="rs-lbl">ดาว</div></div>
+      </div>
+      <div class="res-btns">
+        <button class="btn-primary" id="resNext" onclick="nextChapter()">บทต่อไป →</button>
+        <button class="btn-ghost" onclick="goHome()">กลับเมนูบทเรียน</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="dlf-spk" id="dlfSpk" title="เปิด/ปิดเสียง">🔊</button>
+<div class="dlf-bg" id="dlfBg"></div>
+<div class="dlf-cong" id="dlfCong">
+  <div class="dlf-cong-card">
+    <span class="dlf-cong-trophy" id="dlfCongTrophy">🏆</span>
+    <div class="dlf-cong-title" id="dlfCongTitle">เยี่ยมมาก!</div>
+    <div class="dlf-cong-sub" id="dlfCongSub">น้องทำสำเร็จแล้ว</div>
+    <div class="dlf-cong-stars" id="dlfCongStars">⭐⭐⭐</div>
+    <button class="dlf-cong-btn" id="dlfCongBtn" onclick="dlf.closeCong()">ไปต่อ 🎉</button>
+  </div>
+</div>
+<div class="dlf-mini" id="dlfMini"></div>
+
+<script id="dlfAudioData" type="application/json">{}</script>
+<script>
+window.AREA = {num:4, mascot:'🛡️',
+  title:'ความปลอดภัย ความเป็นอยู่ที่ดี และการใช้อย่างรับผิดชอบ',
+  sub:'เรียนรู้วิธีดูแลเครื่อง ข้อมูลส่วนตัว สุขภาพ และสิ่งแวดล้อม'};
+window.CHAPTERS = [
+  { code:'4.1', ai:false, icon:'🔒', th:'การปกป้องอุปกรณ์', desc:'ป้องกันเครื่องด้วยรหัสผ่าน',
+    slides:[
+      {type:'explain', tag:'บทที่ 4.1 · ปกป้องเครื่อง', icon:'🔒', title:'ป้องกันเครื่องของเรา',
+       body:'เราตั้งรหัสผ่าน ล็อกหน้าจอ และระวังไวรัส เพื่อไม่ให้คนอื่นเข้ามาใช้เครื่องเราได้',
+       say:'ป้องกันเครื่องของเรา เราตั้งรหัสผ่าน ล็อกหน้าจอ และระวังไวรัส เพื่อไม่ให้คนอื่นเข้ามาใช้เครื่องเราได้'},
+      {type:'quiz', icon:'🔑', q:'รหัสผ่านที่ดีควรเป็นอย่างไร?',
+       opts:[
+         {icon:'🛡️', label:'เดายาก และไม่บอกใคร', correct:true, fb:'ถูกต้อง! รหัสที่ดีต้องเดายากและเป็นความลับ'},
+         {icon:'🔢', label:'เลข 1234 และบอกเพื่อนได้', correct:false, fb:'เดาง่ายเกินไป และไม่ควรบอกใคร'}]}
+    ]},
+  { code:'4.2', ai:true, icon:'🔐', th:'การปกป้องข้อมูลส่วนตัว', desc:'เก็บข้อมูลของเราเป็นความลับ',
+    slides:[
+      {type:'explain', tag:'บทที่ 4.2 · ข้อมูลส่วนตัว', icon:'🔐', title:'ข้อมูลส่วนตัวต้องเก็บเป็นความลับ',
+       body:'ชื่อ ที่อยู่ รูป และรหัสผ่าน เป็นข้อมูลส่วนตัว อย่าแบ่งปันกับคนที่เราไม่รู้จัก',
+       say:'ข้อมูลส่วนตัวต้องเก็บเป็นความลับ ชื่อ ที่อยู่ รูป และรหัสผ่าน เป็นข้อมูลส่วนตัว อย่าแบ่งปันกับคนที่เราไม่รู้จัก'},
+      {type:'explain', tag:'บทที่ 4.2 · AI กับข้อมูล', icon:'🤖', title:'AI เรียนรู้จากข้อมูล',
+       body:'AI เรียนรู้จากข้อมูลจำนวนมาก ถ้าข้อมูลเอนเอียงไม่ยุติธรรม คำตอบของ AI ก็อาจไม่ยุติธรรมตามไปด้วย',
+       say:'เอไอเรียนรู้จากข้อมูล เอไอเรียนรู้จากข้อมูลจำนวนมาก ถ้าข้อมูลเอนเอียงไม่ยุติธรรม คำตอบของเอไอก็อาจไม่ยุติธรรมตามไปด้วย'},
+      {type:'quiz', icon:'📲', q:'แอปขอดูรูปและตำแหน่งที่อยู่ของเรา ควรทำอย่างไร?',
+       opts:[
+         {icon:'🤔', label:'คิดก่อน และถามผู้ใหญ่', correct:true, fb:'ดีมาก! ไม่ให้ข้อมูลง่าย ๆ'},
+         {icon:'✅', label:'กดยอมทุกอย่างทันที', correct:false, fb:'ควรคิดก่อนว่าจำเป็นไหม และถามผู้ใหญ่'}]}
+    ]},
+  { code:'4.3', ai:false, icon:'🧘', th:'การปกป้องสุขภาพและความเป็นอยู่ที่ดี', desc:'ใช้จออย่างพอดี ดูแลร่างกายและใจ',
+    slides:[
+      {type:'explain', tag:'บทที่ 4.3 · สุขภาพ', icon:'🧘', title:'ใช้จออย่างพอดี',
+       body:'เล่นคอมพิวเตอร์นาน ๆ ทำให้ปวดตาปวดตัว ควรพักบ้าง มองไกล ๆ ลุกเดิน และนอนให้พอ',
+       say:'ใช้จออย่างพอดี เล่นคอมพิวเตอร์นาน ๆ ทำให้ปวดตาปวดตัว ควรพักบ้าง มองไกล ๆ ลุกเดิน และนอนให้พอ'},
+      {type:'quiz', icon:'👀', q:'เล่นเกมนานจนปวดตา ควรทำอย่างไร?',
+       opts:[
+         {icon:'🌳', label:'พักสายตา มองไกล ๆ แล้วลุกเดิน', correct:true, fb:'ถูกต้อง! ดูแลร่างกายของเรา'},
+         {icon:'🎮', label:'เล่นต่อไปเรื่อย ๆ ทั้งวัน', correct:false, fb:'ไม่ดีต่อสุขภาพ ควรพักบ้าง'}]}
+    ]},
+  { code:'4.4', ai:false, icon:'🌱', th:'ผลกระทบต่อสิ่งแวดล้อม', desc:'ใช้เทคโนโลยีอย่างประหยัด รักษ์โลก',
+    slides:[
+      {type:'explain', tag:'บทที่ 4.4 · สิ่งแวดล้อม', icon:'🌱', title:'เทคโนโลยีกับสิ่งแวดล้อม',
+       body:'คอมพิวเตอร์ใช้ไฟฟ้า เมื่อไม่ใช้ควรปิดเครื่องเพื่อประหยัดไฟ และไม่ทิ้งขยะอิเล็กทรอนิกส์ลงถังทั่วไป',
+       say:'เทคโนโลยีกับสิ่งแวดล้อม คอมพิวเตอร์ใช้ไฟฟ้า เมื่อไม่ใช้ควรปิดเครื่องเพื่อประหยัดไฟ และไม่ทิ้งขยะอิเล็กทรอนิกส์ลงถังทั่วไป'},
+      {type:'quiz', icon:'💡', q:'เลิกใช้คอมพิวเตอร์แล้ว เราควรทำอย่างไร?',
+       opts:[
+         {icon:'🔌', label:'ปิดเครื่องเพื่อประหยัดไฟ', correct:true, fb:'เยี่ยม! ช่วยประหยัดไฟและรักษ์โลก'},
+         {icon:'🌙', label:'เปิดทิ้งไว้ทั้งคืน', correct:false, fb:'เปลืองไฟ ควรปิดเมื่อไม่ใช้'}]}
+    ]}
+];
+</script>
+<script src="assets/dlf.js"></script>
+<script src="assets/engine.js"></script>
+</body>
+</html>

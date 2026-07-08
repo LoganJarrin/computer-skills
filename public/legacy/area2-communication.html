@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ด้านที่ 2 · การสื่อสารและการทำงานร่วมกัน</title>
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<div class="wrap">
+  <div id="home" class="screen active">
+    <div style="text-align:center;"><span class="area-pill">DigComp 3.0</span></div>
+    <div class="intro-card">
+      <span class="intro-mascot">💬</span>
+      <div class="intro-title"></div>
+      <div class="intro-sub"></div>
+    </div>
+    <div class="ch-list" id="chList"></div>
+    <div class="home-foot">กดที่บทเรียนเพื่อเริ่ม · มีปุ่ม 🔊 ให้กดฟังเสียงทุกข้อความ<br><a href="index.html">← กลับหน้าแรก</a></div>
+  </div>
+
+  <div id="lesson" class="screen">
+    <div class="dc-header" id="dcHeader"></div>
+    <div class="hud">
+      <button class="back-btn" onclick="goHome()" title="กลับ">←</button>
+      <div class="hud-title" id="hudTitle">บทเรียน</div>
+      <div class="hud-score" id="scoreDisp">⭐ 0</div>
+    </div>
+    <div class="prog"><div class="prog-fill" id="progFill"></div></div>
+    <div id="lessonContent"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="btn-next" id="btnNext" onclick="nextSlide()">ต่อไป →</button>
+  </div>
+
+  <div id="results" class="screen">
+    <div class="res-card">
+      <span class="res-icon" id="resTrophy">🏆</span>
+      <div class="res-title" id="resTitle">เยี่ยมมาก!</div>
+      <div class="res-sub" id="resSub">น้องเรียนจบบทนี้แล้ว</div>
+      <div class="res-stats">
+        <div class="rs"><div class="rs-val" id="rsCorrect">0</div><div class="rs-lbl">ตอบถูก</div></div>
+        <div class="rs"><div class="rs-val" id="rsStars">⭐⭐⭐</div><div class="rs-lbl">ดาว</div></div>
+      </div>
+      <div class="res-btns">
+        <button class="btn-primary" id="resNext" onclick="nextChapter()">บทต่อไป →</button>
+        <button class="btn-ghost" onclick="goHome()">กลับเมนูบทเรียน</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="dlf-spk" id="dlfSpk" title="เปิด/ปิดเสียง">🔊</button>
+<div class="dlf-bg" id="dlfBg"></div>
+<div class="dlf-cong" id="dlfCong">
+  <div class="dlf-cong-card">
+    <span class="dlf-cong-trophy" id="dlfCongTrophy">🏆</span>
+    <div class="dlf-cong-title" id="dlfCongTitle">เยี่ยมมาก!</div>
+    <div class="dlf-cong-sub" id="dlfCongSub">น้องทำสำเร็จแล้ว</div>
+    <div class="dlf-cong-stars" id="dlfCongStars">⭐⭐⭐</div>
+    <button class="dlf-cong-btn" id="dlfCongBtn" onclick="dlf.closeCong()">ไปต่อ 🎉</button>
+  </div>
+</div>
+<div class="dlf-mini" id="dlfMini"></div>
+
+<script id="dlfAudioData" type="application/json">{}</script>
+<script>
+window.AREA = {num:2, mascot:'💬',
+  title:'การสื่อสารและการทำงานร่วมกัน',
+  sub:'เรียนรู้วิธีคุย แบ่งปัน และทำงานร่วมกับคนอื่นอย่างสุภาพและปลอดภัย'};
+window.CHAPTERS = [
+  { code:'2.1', ai:true, icon:'💬', th:'การติดต่อสื่อสาร', desc:'ส่งข้อความ โทร และคุยกับแชตบอต',
+    slides:[
+      {type:'explain', tag:'บทที่ 2.1 · สื่อสาร', icon:'📱', title:'คุยกันผ่านคอมพิวเตอร์และมือถือ',
+       body:'เราส่งข้อความ โทร หรือวิดีโอคอลหาคนอื่นได้ ถึงจะอยู่ไกลกันก็คุยกันได้',
+       say:'คุยกันผ่านคอมพิวเตอร์และมือถือ เราส่งข้อความ โทร หรือวิดีโอคอลหาคนอื่นได้ ถึงจะอยู่ไกลกันก็คุยกันได้'},
+      {type:'explain', tag:'บทที่ 2.1 · แชตบอต', icon:'🤖', title:'แชตบอตคือโปรแกรมที่คุยกับเรา',
+       body:'บางครั้งเราคุยกับ “แชตบอต” ซึ่งเป็นโปรแกรม AI ไม่ใช่คนจริง มันตอบเราได้ แต่ไม่ใช่มนุษย์',
+       say:'แชตบอตคือโปรแกรมที่คุยกับเรา บางครั้งเราคุยกับแชตบอต ซึ่งเป็นโปรแกรมเอไอ ไม่ใช่คนจริง มันตอบเราได้ แต่ไม่ใช่มนุษย์'},
+      {type:'quiz', icon:'📹', q:'เมื่อวิดีโอคอลหาเพื่อน เราควรทำอะไร?',
+       opts:[
+         {icon:'👋', label:'ทักทายและพูดชัด ๆ', correct:true, fb:'เยี่ยม! พูดชัดเจนช่วยให้เข้าใจกัน'},
+         {icon:'🤫', label:'เงียบไม่พูดอะไรเลย', correct:false, fb:'อีกฝ่ายจะไม่รู้ว่าเราอยู่'},
+         {icon:'📢', label:'ตะโกนดัง ๆ', correct:false, fb:'ไม่ต้องตะโกน พูดปกติก็ได้ยิน'}]}
+    ]},
+  { code:'2.2', ai:false, icon:'📤', th:'การแบ่งปัน', desc:'ส่งต่อสิ่งต่าง ๆ อย่างมีความรับผิดชอบ',
+    slides:[
+      {type:'explain', tag:'บทที่ 2.2 · แบ่งปัน', icon:'📤', title:'แบ่งปันอย่างมีความรับผิดชอบ',
+       body:'เราส่งรูปหรือข้อความให้คนอื่นได้ แต่ต้องคิดก่อนว่าควรแบ่งปันไหม และเป็นของใคร',
+       say:'แบ่งปันอย่างมีความรับผิดชอบ เราส่งรูปหรือข้อความให้คนอื่นได้ แต่ต้องคิดก่อนว่าควรแบ่งปันไหม และเป็นของใคร'},
+      {type:'quiz', icon:'🖼️', q:'ก่อนส่งต่อรูปของเพื่อน เราควรทำอะไร?',
+       opts:[
+         {icon:'🙋', label:'ขออนุญาตเพื่อนก่อน', correct:true, fb:'ถูกต้อง! เคารพเจ้าของรูปเสมอ'},
+         {icon:'⚡', label:'ส่งเลยไม่ต้องถาม', correct:false, fb:'ควรขออนุญาตเจ้าของรูปก่อน'}]}
+    ]},
+  { code:'2.3', ai:false, icon:'🌍', th:'การเป็นพลเมืองดิจิทัล', desc:'ใช้เทคโนโลยีเพื่อสิ่งดี ๆ',
+    slides:[
+      {type:'explain', tag:'บทที่ 2.3 · พลเมืองดิจิทัล', icon:'🌍', title:'ใช้เทคโนโลยีเพื่อสิ่งดี ๆ',
+       body:'เราใช้อินเทอร์เน็ตเรียนรู้ ช่วยเหลือ และมีส่วนร่วมในสังคมได้ อย่างสุภาพและปลอดภัย',
+       say:'ใช้เทคโนโลยีเพื่อสิ่งดี ๆ เราใช้อินเทอร์เน็ตเรียนรู้ ช่วยเหลือ และมีส่วนร่วมในสังคมได้ อย่างสุภาพและปลอดภัย'},
+      {type:'quiz', icon:'⭐', q:'การเป็นพลเมืองดิจิทัลที่ดีคืออะไร?',
+       opts:[
+         {icon:'🤝', label:'ใช้เน็ตอย่างสุภาพและช่วยเหลือกัน', correct:true, fb:'ใช่เลย! เป็นพลเมืองดิจิทัลที่ดี'},
+         {icon:'😡', label:'พิมพ์ด่าว่าคนอื่น', correct:false, fb:'ไม่ดี ควรใช้ถ้อยคำสุภาพ'}]}
+    ]},
+  { code:'2.4', ai:false, icon:'👥', th:'การทำงานร่วมกัน', desc:'ช่วยกันทำงานบนคอมพิวเตอร์',
+    slides:[
+      {type:'explain', tag:'บทที่ 2.4 · ทำงานร่วมกัน', icon:'👥', title:'ทำงานร่วมกันบนคอมพิวเตอร์',
+       body:'หลายคนช่วยกันทำงานชิ้นเดียวได้ เช่น ช่วยกันเขียนเอกสารเดียวกัน แบ่งหน้าที่กัน',
+       say:'ทำงานร่วมกันบนคอมพิวเตอร์ หลายคนช่วยกันทำงานชิ้นเดียวได้ เช่น ช่วยกันเขียนเอกสารเดียวกัน แบ่งหน้าที่กัน'},
+      {type:'quiz', icon:'🧑‍🤝‍🧑', q:'ทำงานกลุ่มออนไลน์ เราควรทำอย่างไร?',
+       opts:[
+         {icon:'✅', label:'แบ่งหน้าที่และช่วยกันทุกคน', correct:true, fb:'เยี่ยม! ทำงานเป็นทีม'},
+         {icon:'😴', label:'ให้เพื่อนทำคนเดียว', correct:false, fb:'ควรช่วยกันทุกคน งานจะดีขึ้น'}]}
+    ]},
+  { code:'2.5', ai:false, icon:'🙏', th:'มารยาทในโลกดิจิทัล', desc:'พูดจาสุภาพเมื่ออยู่ออนไลน์',
+    slides:[
+      {type:'explain', tag:'บทที่ 2.5 · มารยาท', icon:'🙏', title:'มีมารยาทเมื่ออยู่ออนไลน์',
+       body:'พิมพ์สุภาพ ไม่ว่าร้ายคนอื่น คิดถึงความรู้สึกของคนที่อ่าน เหมือนเวลาคุยกันต่อหน้า',
+       say:'มีมารยาทเมื่ออยู่ออนไลน์ พิมพ์สุภาพ ไม่ว่าร้ายคนอื่น คิดถึงความรู้สึกของคนที่อ่าน เหมือนเวลาคุยกันต่อหน้า'},
+      {type:'quiz', icon:'✏️', q:'เพื่อนพิมพ์ผิด เราควรทำอย่างไร?',
+       opts:[
+         {icon:'😊', label:'ใจดี บอกดี ๆ หรือไม่ว่าอะไร', correct:true, fb:'ดีมาก! มีน้ำใจต่อเพื่อน'},
+         {icon:'🤣', label:'หัวเราะเยาะและด่า', correct:false, fb:'ไม่สุภาพ ทำให้เพื่อนเสียใจ'}]}
+    ]},
+  { code:'2.6', ai:false, icon:'🪪', th:'การจัดการตัวตนดิจิทัล', desc:'ดูแลข้อมูลและภาพลักษณ์ของเรา',
+    slides:[
+      {type:'explain', tag:'บทที่ 2.6 · ตัวตนดิจิทัล', icon:'🪪', title:'ดูแลตัวตนบนโลกออนไลน์',
+       body:'สิ่งที่เราโพสต์จะอยู่นาน คิดก่อนโพสต์ และอย่าบอกข้อมูลส่วนตัว เช่น ที่อยู่ เบอร์โทร กับคนแปลกหน้า',
+       say:'ดูแลตัวตนบนโลกออนไลน์ สิ่งที่เราโพสต์จะอยู่นาน คิดก่อนโพสต์ และอย่าบอกข้อมูลส่วนตัว เช่น ที่อยู่ เบอร์โทร กับคนแปลกหน้า'},
+      {type:'quiz', icon:'🕵️', q:'คนแปลกหน้าออนไลน์ถามที่อยู่บ้านเรา ควรทำอย่างไร?',
+       opts:[
+         {icon:'🚫', label:'ไม่บอก และบอกผู้ใหญ่', correct:true, fb:'ถูกต้อง! ปลอดภัยไว้ก่อน'},
+         {icon:'🏠', label:'บอกที่อยู่ให้เลย', correct:false, fb:'อันตราย อย่าบอกที่อยู่กับคนแปลกหน้า'}]}
+    ]}
+];
+</script>
+<script src="assets/dlf.js"></script>
+<script src="assets/engine.js"></script>
+</body>
+</html>

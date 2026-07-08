@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ด้านที่ 5 · การระบุปัญหาและการแก้ปัญหา</title>
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<div class="wrap">
+  <div id="home" class="screen active">
+    <div style="text-align:center;"><span class="area-pill">DigComp 3.0</span></div>
+    <div class="intro-card">
+      <span class="intro-mascot">🧩</span>
+      <div class="intro-title"></div>
+      <div class="intro-sub"></div>
+    </div>
+    <div class="ch-list" id="chList"></div>
+    <div class="home-foot">กดที่บทเรียนเพื่อเริ่ม · มีปุ่ม 🔊 ให้กดฟังเสียงทุกข้อความ<br><a href="index.html">← กลับหน้าแรก</a></div>
+  </div>
+
+  <div id="lesson" class="screen">
+    <div class="dc-header" id="dcHeader"></div>
+    <div class="hud">
+      <button class="back-btn" onclick="goHome()" title="กลับ">←</button>
+      <div class="hud-title" id="hudTitle">บทเรียน</div>
+      <div class="hud-score" id="scoreDisp">⭐ 0</div>
+    </div>
+    <div class="prog"><div class="prog-fill" id="progFill"></div></div>
+    <div id="lessonContent"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="btn-next" id="btnNext" onclick="nextSlide()">ต่อไป →</button>
+  </div>
+
+  <div id="results" class="screen">
+    <div class="res-card">
+      <span class="res-icon" id="resTrophy">🏆</span>
+      <div class="res-title" id="resTitle">เยี่ยมมาก!</div>
+      <div class="res-sub" id="resSub">น้องเรียนจบบทนี้แล้ว</div>
+      <div class="res-stats">
+        <div class="rs"><div class="rs-val" id="rsCorrect">0</div><div class="rs-lbl">ตอบถูก</div></div>
+        <div class="rs"><div class="rs-val" id="rsStars">⭐⭐⭐</div><div class="rs-lbl">ดาว</div></div>
+      </div>
+      <div class="res-btns">
+        <button class="btn-primary" id="resNext" onclick="nextChapter()">บทต่อไป →</button>
+        <button class="btn-ghost" onclick="goHome()">กลับเมนูบทเรียน</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="dlf-spk" id="dlfSpk" title="เปิด/ปิดเสียง">🔊</button>
+<div class="dlf-bg" id="dlfBg"></div>
+<div class="dlf-cong" id="dlfCong">
+  <div class="dlf-cong-card">
+    <span class="dlf-cong-trophy" id="dlfCongTrophy">🏆</span>
+    <div class="dlf-cong-title" id="dlfCongTitle">เยี่ยมมาก!</div>
+    <div class="dlf-cong-sub" id="dlfCongSub">น้องทำสำเร็จแล้ว</div>
+    <div class="dlf-cong-stars" id="dlfCongStars">⭐⭐⭐</div>
+    <button class="dlf-cong-btn" id="dlfCongBtn" onclick="dlf.closeCong()">ไปต่อ 🎉</button>
+  </div>
+</div>
+<div class="dlf-mini" id="dlfMini"></div>
+
+<script id="dlfAudioData" type="application/json">{}</script>
+<script>
+window.AREA = {num:5, mascot:'🧩',
+  title:'การระบุปัญหาและการแก้ปัญหา',
+  sub:'เรียนรู้วิธีแก้ปัญหาเครื่อง เลือกเครื่องมือให้เหมาะ และคิดสิ่งใหม่ ๆ'};
+window.CHAPTERS = [
+  { code:'5.1', ai:false, icon:'🔧', th:'การระบุและแก้ปัญหาทางเทคนิค', desc:'เมื่อเครื่องมีปัญหา ลองแก้ง่าย ๆ',
+    slides:[
+      {type:'explain', tag:'บทที่ 5.1 · แก้ปัญหาเครื่อง', icon:'🔧', title:'เมื่อเครื่องมีปัญหา',
+       body:'บางครั้งเครื่องค้างหรือเสียงไม่ดัง เราลองแก้ง่าย ๆ ก่อน เช่น เช็กปลั๊ก ปิดแล้วเปิดเครื่องใหม่ หรือเพิ่มเสียง',
+       say:'เมื่อเครื่องมีปัญหา บางครั้งเครื่องค้างหรือเสียงไม่ดัง เราลองแก้ง่าย ๆ ก่อน เช่น เช็กปลั๊ก ปิดแล้วเปิดเครื่องใหม่ หรือเพิ่มเสียง'},
+      {type:'quiz', icon:'🔈', q:'เสียงคอมพิวเตอร์ไม่ดัง ลองทำอะไรก่อน?',
+       opts:[
+         {icon:'🔊', label:'เช็กว่าเปิดเสียงอยู่ และเพิ่มระดับเสียง', correct:true, fb:'ถูกต้อง! ลองวิธีง่าย ๆ ก่อน'},
+         {icon:'🔨', label:'ทุบเครื่องแรง ๆ', correct:false, fb:'อย่าทำ! เครื่องจะพัง'}]}
+    ]},
+  { code:'5.2', ai:true, icon:'🎯', th:'การระบุความต้องการและเครื่องมือ', desc:'เลือกเครื่องมือให้เหมาะกับงาน',
+    slides:[
+      {type:'explain', tag:'บทที่ 5.2 · เลือกเครื่องมือ', icon:'🎯', title:'เลือกเครื่องมือให้เหมาะกับงาน',
+       body:'งานต่างกันใช้เครื่องมือต่างกัน อยากคิดเลขใช้เครื่องคิดเลข อยากวาดใช้โปรแกรมวาด อยากส่งข้อความใช้แอปแชต',
+       say:'เลือกเครื่องมือให้เหมาะกับงาน งานต่างกันใช้เครื่องมือต่างกัน อยากคิดเลขใช้เครื่องคิดเลข อยากวาดใช้โปรแกรมวาด อยากส่งข้อความใช้แอปแชต'},
+      {type:'quiz', icon:'✉️', q:'อยากส่งข้อความหาเพื่อนเร็ว ๆ ควรใช้อะไร?',
+       opts:[
+         {icon:'💬', label:'แอปแชต', correct:true, fb:'เยี่ยม! เหมาะกับการส่งข้อความ'},
+         {icon:'🖨️', label:'เครื่องพิมพ์', correct:false, fb:'เครื่องพิมพ์ใช้พิมพ์กระดาษ ไม่ใช่ส่งข้อความ'}]}
+    ]},
+  { code:'5.3', ai:true, icon:'💡', th:'การหาทางแก้ปัญหาอย่างสร้างสรรค์', desc:'ใช้เทคโนโลยีคิดสิ่งใหม่ ๆ',
+    slides:[
+      {type:'explain', tag:'บทที่ 5.3 · คิดสร้างสรรค์', icon:'💡', title:'ใช้เทคโนโลยีคิดสิ่งใหม่',
+       body:'เราใช้คอมพิวเตอร์สร้างสรรค์สิ่งใหม่ ๆ ได้ เช่น ทำการ์ดวันเกิด แต่งนิทาน หรือช่วยแก้ปัญหาในห้องเรียน',
+       say:'ใช้เทคโนโลยีคิดสิ่งใหม่ เราใช้คอมพิวเตอร์สร้างสรรค์สิ่งใหม่ ๆ ได้ เช่น ทำการ์ดวันเกิด แต่งนิทาน หรือช่วยแก้ปัญหาในห้องเรียน'},
+      {type:'quiz', icon:'🎂', q:'อยากทำการ์ดวันเกิดให้แม่ ใช้คอมพิวเตอร์ทำอะไรได้?',
+       opts:[
+         {icon:'🎨', label:'ออกแบบการ์ดสวย ๆ ด้วยโปรแกรมวาด', correct:true, fb:'ยอดเยี่ยม! สร้างสรรค์มาก'},
+         {icon:'🚫', label:'คอมพิวเตอร์ทำการ์ดไม่ได้', correct:false, fb:'ทำได้สิ! มีโปรแกรมช่วยออกแบบ'}]}
+    ]},
+  { code:'5.4', ai:false, icon:'📈', th:'การพัฒนาความสามารถดิจิทัล', desc:'เรียนรู้เพิ่มขึ้นได้เสมอ',
+    slides:[
+      {type:'explain', tag:'บทที่ 5.4 · เรียนรู้เพิ่ม', icon:'📈', title:'เรียนรู้เพิ่มได้เสมอ',
+       body:'ไม่มีใครเก่งทุกอย่างตั้งแต่แรก ถ้ายังทำไม่ได้ เราฝึกฝนและถามคนอื่นได้ แล้วเราจะเก่งขึ้นทุกวัน',
+       say:'เรียนรู้เพิ่มได้เสมอ ไม่มีใครเก่งทุกอย่างตั้งแต่แรก ถ้ายังทำไม่ได้ เราฝึกฝนและถามคนอื่นได้ แล้วเราจะเก่งขึ้นทุกวัน'},
+      {type:'quiz', icon:'🌟', q:'ถ้ามีเรื่องคอมพิวเตอร์ที่เรายังทำไม่เป็น ควรทำอย่างไร?',
+       opts:[
+         {icon:'🌱', label:'ฝึกฝนและถามคนที่รู้', correct:true, fb:'ถูกต้อง! เราเรียนรู้ได้เสมอ'},
+         {icon:'😞', label:'ยอมแพ้ ไม่ทำอีกเลย', correct:false, fb:'อย่ายอมแพ้ ทุกคนฝึกเก่งขึ้นได้'}]}
+    ]}
+];
+</script>
+<script src="assets/dlf.js"></script>
+<script src="assets/engine.js"></script>
+</body>
+</html>
