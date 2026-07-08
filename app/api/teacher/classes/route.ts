@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth/server';
+import { isAdmin } from '@/lib/auth/admins';
 import { getSql } from '@/lib/db';
 import { rateLimit, clientKey } from '@/lib/ratelimit';
 
@@ -10,16 +11,17 @@ function genCode(): string {
   return s;
 }
 
-async function getUserId(): Promise<string | null> {
+async function getAdminId(): Promise<string | null> {
   const s = (await auth.getSession()) as any;
-  return s?.data?.user?.id ?? s?.user?.id ?? null;
+  const u = s?.data?.user ?? s?.user ?? null;
+  return u && isAdmin(u.email) ? (u.id as string) : null;
 }
 
 export async function POST(req: NextRequest) {
   const sql = getSql();
   if (!sql) return NextResponse.json({ ok: false, error: 'no db' }, { status: 500 });
-  const teacherId = await getUserId();
-  if (!teacherId) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
+  const teacherId = await getAdminId();
+  if (!teacherId) return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 403 });
   if (!rateLimit(`class:${clientKey(req)}`, 30, 60_000))
     return NextResponse.json({ ok: false, error: 'too many requests' }, { status: 429 });
 

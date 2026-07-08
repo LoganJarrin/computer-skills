@@ -20,12 +20,21 @@ export default function AuthGate() {
     if (!email || !pw) { setErr('กรอกอีเมลและรหัสผ่าน'); return; }
     setBusy(true); setErr('');
     try {
-      const res: any =
-        mode === 'up'
-          ? await authClient.signUp.email({ email, password: pw, name: name || email })
-          : await authClient.signIn.email({ email, password: pw });
-      if (res?.error) { setErr(res.error.message || 'เกิดข้อผิดพลาด'); setBusy(false); return; }
-      router.refresh();
+      if (mode === 'up') {
+        // gated server-side to the allowlisted admin emails
+        const r = await fetch('/api/teacher/register', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ email, password: pw, name: name || email }),
+        });
+        const d = await r.json();
+        if (!d.ok) { setErr(d.error || 'สร้างบัญชีไม่สำเร็จ'); setBusy(false); return; }
+        await authClient.signIn.email({ email, password: pw }); // establish session
+        router.refresh();
+      } else {
+        const res: any = await authClient.signIn.email({ email, password: pw });
+        if (res?.error) { setErr(res.error.message || 'เข้าสู่ระบบไม่สำเร็จ'); setBusy(false); return; }
+        router.refresh();
+      }
     } catch (e: any) { setErr(e?.message || 'เกิดข้อผิดพลาด'); setBusy(false); }
   }
 
