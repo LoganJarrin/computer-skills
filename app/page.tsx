@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import TopBar from '@/components/TopBar';
-import { AREAS } from '@/lib/content';
+import { AREAS, DIGCOMP_AREAS } from '@/lib/content';
 import { getStudent, setStudent } from '@/lib/progress';
-import { computeStats, areaStarsFor, touchStreak, getStreak, getDaily } from '@/lib/gamify';
+import { areaStarsFor, touchStreak, getStreak, getDaily } from '@/lib/gamify';
 
-const AREA_STYLE: Record<number, { orb: string; accent: string; accentL: string; edge: string; desc: string }> = {
+type Style = { orb: string; accent: string; accentL: string; edge: string; desc: string };
+const AREA_STYLE: Record<number, Style> = {
+  0: { orb: 'linear-gradient(135deg,#DCE9FF,#A9CCFF)', accent: '#3A82F6', accentL: '#5CA0FF', edge: '#2E64D6', desc: 'รู้จักเครื่อง · เมาส์ · แป้นพิมพ์' },
   1: { orb: 'linear-gradient(135deg,#CFE9FF,#9CCBFF)', accent: '#2E9BFF', accentL: '#4FB0FF', edge: '#2277CC', desc: 'ค้นหา · ดูว่าจริงหรือหลอก · จัดเก็บ' },
   2: { orb: 'linear-gradient(135deg,#DFF6E4,#B0EAC1)', accent: '#38A93A', accentL: '#5CD35B', edge: '#2E8B30', desc: 'คุย · แบ่งปัน · มารยาท · ตัวตนดิจิทัล' },
   3: { orb: 'linear-gradient(135deg,#ECE0FF,#C9AEFF)', accent: '#9A5CF0', accentL: '#B583F5', edge: '#7C3EE0', desc: 'สร้างงาน · ลิขสิทธิ์ · เขียนโปรแกรม' },
@@ -18,10 +20,10 @@ const AREA_STYLE: Record<number, { orb: string; accent: string; accentL: string;
 const inputStyle: React.CSSProperties = { padding: '11px 14px', border: '1.5px solid var(--line)', borderRadius: 12, fontFamily: 'Sarabun', fontSize: 15, background: '#FFFDF6', minWidth: 110, flex: 1 };
 
 export default function Home() {
-  const [stars, setStars] = useState(0);
   const [streak, setStreak] = useState(0);
   const [daily, setDaily] = useState({ done: 0, goal: 3 });
-  const [areaPct, setAreaPct] = useState<Record<number, { pct: number; stars: number }>>({});
+  const [pct, setPct] = useState<Record<number, number>>({});
+  const [digcompStars, setDigcompStars] = useState(0);
   const [name, setName] = useState<string | null>(null);
   const [nameInput, setNameInput] = useState('');
   const [classInput, setClassInput] = useState('');
@@ -29,14 +31,11 @@ export default function Home() {
   useEffect(() => {
     touchStreak();
     setStreak(getStreak());
-    setStars(computeStats().stars);
     setDaily(getDaily());
-    const m: Record<number, { pct: number; stars: number }> = {};
-    for (const a of AREAS) {
-      const s = areaStarsFor(a.chapters.map((c) => c.code));
-      m[a.num] = { stars: s, pct: Math.round((s / (a.chapters.length * 3)) * 100) };
-    }
-    setAreaPct(m);
+    const m: Record<number, number> = {};
+    for (const a of AREAS) m[a.num] = Math.round((areaStarsFor(a.chapters.map((c) => c.code)) / (a.chapters.length * 3)) * 100);
+    setPct(m);
+    setDigcompStars(DIGCOMP_AREAS.reduce((s, a) => s + areaStarsFor(a.chapters.map((c) => c.code)), 0));
     setName(getStudent()?.name ?? null);
   }, []);
 
@@ -46,6 +45,31 @@ export default function Home() {
     setStudent({ name: n, classCode: classInput.trim() });
     setName(n);
   }
+
+  function areaCard(a: (typeof AREAS)[number]) {
+    const st = AREA_STYLE[a.num];
+    const p = pct[a.num] || 0;
+    const done = p >= 100;
+    const lbl = a.num === 0 ? 'เริ่มต้น' : `ด้านที่ ${a.num}`;
+    return (
+      <Link key={a.num} className="card3d unit" href={`/area/${a.num}`} style={{ borderBottomColor: done ? '#38A93A' : st.edge }}>
+        <div className="unit-top">
+          <span className="unit-orb" style={{ background: st.orb }}>{a.mascot}</span>
+          <div>
+            <div className="unit-lbl" style={{ color: st.accent }}>{lbl} · {done ? 'สำเร็จ' : p > 0 ? `${p}%` : 'เริ่มเลย'}</div>
+            <div className="unit-name">{a.title}</div>
+          </div>
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--muted2)', margin: '2px 0 14px' }}>{st.desc}</div>
+        <div className="unit-foot">
+          <div className="prog-track" style={{ background: p > 0 ? '#E4F3E9' : '#EDF2F7' }}><div className="prog-fill" style={{ width: `${p}%`, background: done ? '#3BA93C' : st.accent }} /></div>
+          <span className="unit-go" style={{ background: done ? 'linear-gradient(135deg,#5CD35B,#38A93A)' : `linear-gradient(135deg,${st.accentL},${st.accent})`, boxShadow: `0 5px 0 ${done ? '#2E8B30' : st.edge}` }}>{done ? '✓' : '▶'}</span>
+        </div>
+      </Link>
+    );
+  }
+
+  const basics = AREAS.find((a) => a.num === 0);
 
   return (
     <div className="page">
@@ -80,6 +104,19 @@ export default function Home() {
               </div>
             )}
 
+            {basics && (
+              <div className="section">
+                <div className="sec-head">
+                  <span className="sec-ico" style={{ background: 'linear-gradient(135deg,#DCE9FF,#A9CCFF)', boxShadow: '0 5px 0 #B9D4FF' }}>🚀</span>
+                  <div style={{ flex: 1 }}>
+                    <h3 className="sec-title">เริ่มต้น: พื้นฐานคอมพิวเตอร์</h3>
+                    <p className="sec-desc">รู้จักเครื่อง ใช้เมาส์ และแป้นพิมพ์ ก่อนเริ่มบทอื่น</p>
+                  </div>
+                </div>
+                <div className="grid3">{areaCard(basics)}</div>
+              </div>
+            )}
+
             <div className="section">
               <div className="sec-head">
                 <span className="sec-ico" style={{ background: 'linear-gradient(135deg,#DFF6E4,#B7ECC4)', boxShadow: '0 5px 0 #B7ECC4' }}>📚</span>
@@ -87,31 +124,9 @@ export default function Home() {
                   <h3 className="sec-title">บทเรียนทักษะดิจิทัล</h3>
                   <p className="sec-desc">DigComp 3.0 · 5 ด้าน · 21 สมรรถนะ · มีเสียงอ่านทุกบท</p>
                 </div>
-                <span className="sec-count" style={{ color: '#fff', background: '#38A93A', boxShadow: '0 4px 0 #2E8B30' }}>{stars} / 63 ⭐</span>
+                <span className="sec-count" style={{ color: '#fff', background: '#38A93A', boxShadow: '0 4px 0 #2E8B30' }}>{digcompStars} / 63 ⭐</span>
               </div>
-              <div className="grid3">
-                {AREAS.map((a) => {
-                  const st = AREA_STYLE[a.num];
-                  const p = areaPct[a.num] || { pct: 0, stars: 0 };
-                  const done = p.pct >= 100;
-                  return (
-                    <Link key={a.num} className="card3d unit" href={`/area/${a.num}`} style={{ borderBottomColor: done ? '#38A93A' : st.edge }}>
-                      <div className="unit-top">
-                        <span className="unit-orb" style={{ background: st.orb }}>{a.mascot}</span>
-                        <div>
-                          <div className="unit-lbl" style={{ color: st.accent }}>ด้านที่ {a.num} · {done ? 'สำเร็จ' : p.pct > 0 ? `${p.pct}%` : 'เริ่มเลย'}</div>
-                          <div className="unit-name">{a.title}</div>
-                        </div>
-                      </div>
-                      <div style={{ fontSize: 13, color: 'var(--muted2)', margin: '2px 0 14px' }}>{st.desc}</div>
-                      <div className="unit-foot">
-                        <div className="prog-track" style={{ background: p.pct > 0 ? '#E4F3E9' : '#EDF2F7' }}><div className="prog-fill" style={{ width: `${p.pct}%`, background: done ? '#3BA93C' : st.accent }} /></div>
-                        <span className="unit-go" style={{ background: done ? 'linear-gradient(135deg,#5CD35B,#38A93A)' : `linear-gradient(135deg,${st.accentL},${st.accent})`, boxShadow: `0 5px 0 ${done ? '#2E8B30' : st.edge}` }}>{done ? '✓' : '▶'}</span>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
+              <div className="grid3">{DIGCOMP_AREAS.map(areaCard)}</div>
             </div>
 
             <div style={{ textAlign: 'center', marginTop: 30, fontSize: 13, color: 'var(--muted2)', lineHeight: 1.7 }}>

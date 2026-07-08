@@ -127,7 +127,6 @@ export default function LessonApp({ area }: { area: Area }) {
                   <>
                     <h2 className="p-name">{slide.title}</h2>
                     <p className="p-concept">{slide.body}</p>
-                    {slide.html && <div style={{ marginTop: 16 }} dangerouslySetInnerHTML={{ __html: slide.html }} />}
                   </>
                 ) : (
                   <h2 className="p-name" style={{ fontSize: 20, color: 'var(--muted2)' }}>{chapter.code} {chapter.th}</h2>

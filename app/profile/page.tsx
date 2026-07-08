@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import TopBar from '@/components/TopBar';
-import { AREAS } from '@/lib/content';
+import { DIGCOMP_AREAS as AREAS } from '@/lib/content';
 import { getStudent, setStudent, getProgressMap } from '@/lib/progress';
 import { computeStats, getStreak } from '@/lib/gamify';
 

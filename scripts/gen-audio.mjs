@@ -64,7 +64,7 @@ const keyOf = (s) => md5(clean(s)).slice(0, 12);
 
 // ---- load AREAS from lib/content.ts (JSON literal) ----
 const src = fs.readFileSync(path.join(ROOT, 'lib', 'content.ts'), 'utf8');
-const m = src.match(/export const AREAS: Area\[\] = (\[[\s\S]*?\]);\s*\nexport const areaByNum/);
+const m = src.match(/export const AREAS: Area\[\] = (\[[\s\S]*?\]);\s*\nexport const /);
 if (!m) { console.error('Could not extract AREAS from content.ts'); process.exit(1); }
 const AREAS = JSON.parse(m[1]);
 
