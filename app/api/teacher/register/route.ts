@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   if (!rateLimit(`register:${clientKey(req)}`, 10, 60_000))
     return NextResponse.json({ ok: false, error: 'too many requests' }, { status: 429 });
   let isBot = false;
-  try { isBot = (await checkBotId()).isBot; } catch {}
+  try { isBot = (await checkBotId({ advancedOptions: { checkLevel: 'deepAnalysis' } })).isBot; } catch {}
   if (isBot) return NextResponse.json({ ok: false, error: 'ตรวจพบการใช้งานผิดปกติ' }, { status: 403 });
 
   let b: any;
