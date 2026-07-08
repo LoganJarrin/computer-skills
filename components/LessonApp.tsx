@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Area } from '@/lib/content';
 import { speak, stop, isMuted, setMuted } from '@/lib/tts';
 import { saveProgress, getProgressMap } from '@/lib/progress';
+import { recordDaily } from '@/lib/gamify';
 
 type Screen = 'home' | 'lesson' | 'complete';
 
@@ -57,6 +58,7 @@ export default function LessonApp({ area }: { area: Area }) {
     const stars = quizTotal === 0 ? 3 : chapCorrect >= quizTotal ? 3 : chapCorrect >= Math.ceil(quizTotal / 2) ? 2 : 1;
     setLastStars(stars);
     saveProgress(area.num, chapter.code, stars, chapCorrect, quizTotal);
+    recordDaily();
     confetti(50);
     setScreen('complete');
   }

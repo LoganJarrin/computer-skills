@@ -4,13 +4,17 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import TopBar from '@/components/TopBar';
 import { AREAS } from '@/lib/content';
-import { getStudent, getProgressMap } from '@/lib/progress';
+import { getStudent, setStudent, getProgressMap } from '@/lib/progress';
 import { computeStats, getStreak } from '@/lib/gamify';
 
 const DAYS = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
+const inputStyle: React.CSSProperties = { padding: '11px 14px', border: '1.5px solid var(--line)', borderRadius: 12, fontFamily: 'Sarabun', fontSize: 15, background: '#FFFDF6', minWidth: 110, flex: 1 };
 
 export default function Profile() {
   const [name, setName] = useState('น้องนักเรียน');
+  const [nameInput, setNameInput] = useState('');
+  const [classInput, setClassInput] = useState('');
+  const [saved, setSaved] = useState(false);
   const [stars, setStars] = useState(0);
   const [gems, setGems] = useState(0);
   const [xp, setXp] = useState(0);
@@ -21,7 +25,7 @@ export default function Profile() {
 
   useEffect(() => {
     const st = getStudent();
-    if (st?.name) setName(st.name);
+    if (st?.name) { setName(st.name); setNameInput(st.name); setClassInput(st.classCode || ''); }
     const s = computeStats();
     setStars(s.stars); setGems(s.gems); setXp(s.xp); setCompleted(s.completed);
     setStreak(getStreak());
@@ -37,6 +41,13 @@ export default function Profile() {
     ];
     setBadges(b);
   }, []);
+
+  function saveName() {
+    const n = nameInput.trim();
+    if (!n) return;
+    setStudent({ name: n, classCode: classInput.trim() });
+    setName(n); setSaved(true); setTimeout(() => setSaved(false), 1600);
+  }
 
   const level = Math.floor(xp / 300) + 1;
   const nextLevelXp = level * 300;
@@ -95,7 +106,15 @@ export default function Profile() {
               ))}
             </div>
 
-            <div style={{ textAlign: 'center', marginTop: 26 }}>
+            <div style={{ marginTop: 26, background: '#fff', border: '2px solid var(--line)', borderBottomWidth: 5, borderRadius: 18, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 24 }}>✏️</span>
+              <div style={{ flex: 1, minWidth: 150, fontFamily: 'Sarabun', fontSize: 14, color: 'var(--muted2)' }}>{saved ? 'บันทึกแล้ว ✓' : 'เปลี่ยนชื่อหรือห้อง'}</div>
+              <input style={inputStyle} placeholder="ชื่อเล่น" value={nameInput} onChange={(e) => setNameInput(e.target.value)} />
+              <input style={inputStyle} placeholder="ห้อง (ถ้ามี)" value={classInput} onChange={(e) => setClassInput(e.target.value)} />
+              <button className="btn3d blue" style={{ padding: '12px 22px' }} onClick={saveName}>บันทึก</button>
+            </div>
+
+            <div style={{ textAlign: 'center', marginTop: 20 }}>
               <Link className="btn-ghost3d" href="/" style={{ display: 'inline-flex' }}>← กลับหน้าหลัก</Link>
             </div>
           </div>

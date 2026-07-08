@@ -20,6 +20,30 @@ export function areaStarsFor(codes: string[]): number {
   return codes.reduce((s, c) => s + (map[c]?.stars || 0), 0);
 }
 
+const DAILY_GOAL = 3;
+
+export function getDaily(): { done: number; goal: number } {
+  if (typeof window === 'undefined') return { done: 0, goal: DAILY_GOAL };
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const raw = localStorage.getItem('cs_daily');
+    const d = raw ? JSON.parse(raw) : { day: '', done: 0 };
+    return { done: d.day === today ? d.done || 0 : 0, goal: DAILY_GOAL };
+  } catch { return { done: 0, goal: DAILY_GOAL }; }
+}
+
+export function recordDaily(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const raw = localStorage.getItem('cs_daily');
+    const d = raw ? JSON.parse(raw) : { day: '', done: 0 };
+    if (d.day !== today) { d.day = today; d.done = 0; }
+    d.done = (d.done || 0) + 1;
+    localStorage.setItem('cs_daily', JSON.stringify(d));
+  } catch {}
+}
+
 export function getStreak(): number {
   if (typeof window === 'undefined') return 0;
   try { const raw = localStorage.getItem('cs_streak'); return raw ? (JSON.parse(raw).days || 0) : 0; } catch { return 0; }

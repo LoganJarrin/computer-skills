@@ -5,6 +5,16 @@
 let AUD: Record<string, string> = {};
 export function setAudioMap(m: Record<string, string>) { AUD = m || {}; }
 
+let audioLoaded = false;
+export async function initAudio() {
+  if (audioLoaded || typeof window === 'undefined') return;
+  audioLoaded = true;
+  try {
+    const r = await fetch('/audio/manifest.json', { cache: 'force-cache' });
+    if (r.ok) setAudioMap(await r.json());
+  } catch {}
+}
+
 export function isMuted(): boolean {
   if (typeof window === 'undefined') return false;
   try { return localStorage.getItem('dlfMute') === '1'; } catch { return false; }
