@@ -6,8 +6,9 @@ export function generateStaticParams() {
   return [0, 1, 2, 3, 4, 5].map((n) => ({ num: String(n) }));
 }
 
-export default function AreaPage({ params }: { params: { num: string } }) {
-  const area = areaByNum(Number(params.num));
+export default async function AreaPage({ params }: { params: Promise<{ num: string }> }) {
+  const { num } = await params;
+  const area = areaByNum(Number(num));
   if (!area) notFound();
   return <LessonApp area={area} />;
 }
