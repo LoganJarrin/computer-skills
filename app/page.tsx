@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import TopBar from '@/components/TopBar';
 import { AREAS, DIGCOMP_AREAS } from '@/lib/content';
-import { getStudent, setStudent } from '@/lib/progress';
+import { getStudent, setStudent, syncFromServer } from '@/lib/progress';
 import { areaStarsFor, touchStreak, getStreak, getDaily } from '@/lib/gamify';
 
 type Style = { orb: string; accent: string; accentL: string; edge: string; desc: string };
@@ -26,24 +26,50 @@ export default function Home() {
   const [digcompStars, setDigcompStars] = useState(0);
   const [name, setName] = useState<string | null>(null);
   const [nameInput, setNameInput] = useState('');
-  const [classInput, setClassInput] = useState('');
+  const [codeInput, setCodeInput] = useState('');
+  const [pinInput, setPinInput] = useState('');
+  const [needPin, setNeedPin] = useState(false);
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
-    touchStreak();
+  function loadStats() {
     setStreak(getStreak());
     setDaily(getDaily());
     const m: Record<number, number> = {};
     for (const a of AREAS) m[a.num] = Math.round((areaStarsFor(a.chapters.map((c) => c.code)) / (a.chapters.length * 3)) * 100);
     setPct(m);
     setDigcompStars(DIGCOMP_AREAS.reduce((s, a) => s + areaStarsFor(a.chapters.map((c) => c.code)), 0));
+  }
+
+  useEffect(() => {
+    touchStreak();
+    loadStats();
     setName(getStudent()?.name ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function saveName() {
+  async function saveName() {
     const n = nameInput.trim();
-    if (!n) return;
-    setStudent({ name: n, classCode: classInput.trim() });
-    setName(n);
+    if (!n) { setErr('ใส่ชื่อเล่นก่อนนะ'); return; }
+    const code = codeInput.trim().toUpperCase();
+    setErr(''); setBusy(true);
+    if (code) {
+      try {
+        const r = await fetch('/api/class/join', {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ joinCode: code, name: n, pin: pinInput.trim() }),
+        });
+        const d = await r.json();
+        if (!d.ok) { setErr(d.error || 'เข้าห้องไม่สำเร็จ'); setNeedPin(!!d.needPin); setBusy(false); return; }
+        setStudent({ name: n, classCode: code });
+        await syncFromServer(n, code);
+        setName(n); loadStats();
+      } catch { setErr('เชื่อมต่อไม่ได้ ลองใหม่'); }
+      setBusy(false);
+    } else {
+      setStudent({ name: n, classCode: '' });
+      setName(n); loadStats(); setBusy(false);
+    }
   }
 
   function areaCard(a: (typeof AREAS)[number]) {
@@ -92,15 +118,19 @@ export default function Home() {
             </div>
 
             {!name && (
-              <div style={{ background: '#fff', border: '2px solid var(--line)', borderBottomWidth: 5, borderRadius: 18, padding: '16px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 30 }}>👋</span>
-                <div style={{ flex: 1, minWidth: 170 }}>
-                  <div style={{ fontFamily: 'Mitr', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>ใส่ชื่อเพื่อบันทึกความก้าวหน้า</div>
-                  <div style={{ fontFamily: 'Sarabun', fontSize: 13, color: 'var(--muted2)' }}>ไม่ใส่ก็เรียนได้ · ใส่แล้วจะขึ้นกระดานผู้นำ</div>
+              <div style={{ background: '#fff', border: '2px solid var(--line)', borderBottomWidth: 5, borderRadius: 18, padding: '16px 20px', marginBottom: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 30 }}>👋</span>
+                  <div style={{ flex: 1, minWidth: 170 }}>
+                    <div style={{ fontFamily: 'Mitr', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>ใส่ชื่อเพื่อเริ่มเรียน</div>
+                    <div style={{ fontFamily: 'Sarabun', fontSize: 13, color: 'var(--muted2)' }}>มีรหัสห้องจากครูก็ใส่ได้ · ไม่มีก็เรียนได้เลย</div>
+                  </div>
+                  <input style={inputStyle} placeholder="ชื่อเล่น" value={nameInput} onChange={(e) => setNameInput(e.target.value)} />
+                  <input style={{ ...inputStyle, textTransform: 'uppercase' }} placeholder="รหัสห้อง (ถ้ามี)" value={codeInput} onChange={(e) => setCodeInput(e.target.value)} />
+                  {needPin && <input style={{ ...inputStyle, maxWidth: 110 }} placeholder="PIN 4 หลัก" value={pinInput} onChange={(e) => setPinInput(e.target.value)} />}
+                  <button className="btn3d blue" style={{ padding: '12px 22px', opacity: busy ? 0.6 : 1 }} onClick={saveName} disabled={busy}>{busy ? '...' : 'เริ่ม'}</button>
                 </div>
-                <input style={inputStyle} placeholder="ชื่อเล่น" value={nameInput} onChange={(e) => setNameInput(e.target.value)} />
-                <input style={inputStyle} placeholder="ห้อง (ถ้ามี)" value={classInput} onChange={(e) => setClassInput(e.target.value)} />
-                <button className="btn3d blue" style={{ padding: '12px 22px' }} onClick={saveName}>บันทึก</button>
+                {err && <div style={{ color: '#C23B2A', fontFamily: 'Sarabun', fontSize: 14, marginTop: 10 }}>{err}</div>}
               </div>
             )}
 
@@ -129,8 +159,9 @@ export default function Home() {
               <div className="grid3">{DIGCOMP_AREAS.map(areaCard)}</div>
             </div>
 
-            <div style={{ textAlign: 'center', marginTop: 30, fontSize: 13, color: 'var(--muted2)', lineHeight: 1.7 }}>
-              อ้างอิง <b>DigComp 3.0</b> (JRC, 2025) · พัฒนาโดย <b>PaoPao Punyasataporn</b>
+            <div style={{ textAlign: 'center', marginTop: 30, fontSize: 13, color: 'var(--muted2)', lineHeight: 1.8 }}>
+              อ้างอิง <b>DigComp 3.0</b> (JRC, 2025) · พัฒนาโดย <b>PaoPao Punyasataporn</b><br />
+              <Link href="/teacher" style={{ color: 'var(--green-d)', fontWeight: 600 }}>สำหรับคุณครู →</Link>
             </div>
 
           </div>

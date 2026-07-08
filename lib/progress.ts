@@ -43,3 +43,21 @@ export function areaStars(codes: string[]): number {
   const map = getProgressMap();
   return codes.reduce((s, c) => s + (map[c]?.stars || 0), 0);
 }
+
+// Pull a student's saved progress from the server into localStorage (cross-device
+// restore when a kid logs into their class on a shared/new device).
+export async function syncFromServer(name: string, classCode: string): Promise<void> {
+  if (typeof window === 'undefined' || !name) return;
+  try {
+    const r = await fetch(`/api/progress?name=${encodeURIComponent(name)}&classCode=${encodeURIComponent(classCode)}`);
+    const d = await r.json();
+    if (!d?.ok || !Array.isArray(d.rows)) return;
+    const map = getProgressMap();
+    for (const row of d.rows) {
+      const code = row.competence_code;
+      const prev = map[code]?.stars || 0;
+      map[code] = { stars: Math.max(prev, row.stars || 0), correct: row.correct || 0, total: row.total || 0 };
+    }
+    localStorage.setItem('cs_progress', JSON.stringify(map));
+  } catch {}
+}
