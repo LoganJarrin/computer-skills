@@ -20,8 +20,14 @@ export async function POST(req: NextRequest) {
   if (!joinCode || !Number.isInteger(studentId) || !isValidPin(pin))
     return NextResponse.json({ ok: false, error: 'ข้อมูลไม่ครบ' }, { status: 400 });
 
-  const st = (await sql`SELECT name, email FROM students WHERE id = ${studentId} AND class_code = ${joinCode} AND auth_id IS NOT NULL`) as any[];
+  const st = (await sql`SELECT name, email, pin_fails FROM students WHERE id = ${studentId} AND class_code = ${joinCode} AND auth_id IS NOT NULL`) as any[];
   if (!st.length) return NextResponse.json({ ok: false, error: 'ไม่พบนักเรียน' }, { status: 404 });
+
+  // Locked after 10 wrong PINs — only an admin can unlock. Stops distributed
+  // brute-force regardless of IP.
+  const LOCK_AT = 10;
+  if ((st[0].pin_fails ?? 0) >= LOCK_AT)
+    return NextResponse.json({ ok: false, locked: true, error: 'บัญชีถูกล็อก บอกคุณครูให้ปลดล็อก' }, { status: 403 });
 
   const origin = new URL(req.url).origin;
   const login = await fetch(`${origin}/api/auth/sign-in/email`, {
@@ -29,8 +35,17 @@ export async function POST(req: NextRequest) {
     headers: { 'content-type': 'application/json', origin },
     body: JSON.stringify({ email: st[0].email, password: studentPassword(pin) }),
   });
-  if (!login.ok) return NextResponse.json({ ok: false, error: 'PIN ไม่ถูกต้อง' }, { status: 401 });
+  if (!login.ok) {
+    const nf = (st[0].pin_fails ?? 0) + 1;
+    await sql`UPDATE students SET pin_fails = ${nf} WHERE id = ${studentId}`;
+    let error: string;
+    if (nf >= LOCK_AT) error = 'PIN ผิดหลายครั้ง บัญชีถูกล็อก บอกคุณครูให้ปลดล็อก';
+    else if (nf >= 5) error = `PIN ไม่ถูก (ผิด ${nf} ครั้ง, เหลืออีก ${LOCK_AT - nf} ครั้ง) — ถ้าลืม PIN บอกคุณครูได้เลย`;
+    else error = 'PIN ไม่ถูกต้อง';
+    return NextResponse.json({ ok: false, locked: nf >= LOCK_AT, error }, { status: 401 });
+  }
 
+  await sql`UPDATE students SET pin_fails = 0 WHERE id = ${studentId}`; // clear on success
   const res = NextResponse.json({ ok: true, studentId, name: st[0].name, classCode: joinCode });
   for (const c of (login.headers.getSetCookie?.() ?? [])) res.headers.append('set-cookie', c);
   return res;

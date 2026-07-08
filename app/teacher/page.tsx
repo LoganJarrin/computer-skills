@@ -8,6 +8,7 @@ import AuthGate from '@/components/teacher/AuthGate';
 import SignOutBtn from '@/components/teacher/SignOutBtn';
 import CreateClassForm from '@/components/teacher/CreateClassForm';
 import AddStudentForm from '@/components/teacher/AddStudentForm';
+import UnlockButton from '@/components/teacher/UnlockButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -93,7 +94,12 @@ export default async function TeacherPage() {
                           {c.students.map((st, i) => (
                             <tr key={i} style={{ borderTop: '1px solid var(--line)' }}>
                               <td style={{ padding: '12px 16px', fontWeight: 600, fontSize: 16 }}>{st.name}</td>
-                              <td style={{ padding: '12px 16px', fontFamily: 'Mitr', letterSpacing: 1, color: 'var(--muted2)' }}>{st.pin}</td>
+                              <td style={{ padding: '12px 16px', fontFamily: 'Mitr', letterSpacing: 1, color: 'var(--muted2)' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                  {st.pin}
+                                  {st.locked && <><span title="ถูกล็อก" style={{ color: '#C23B2A' }}>🔒</span><UnlockButton studentId={st.id} /></>}
+                                </span>
+                              </td>
                               <td style={{ padding: '12px 16px', color: 'var(--green-d)', fontWeight: 700 }}>⭐ {st.stars}</td>
                               <td style={{ padding: '12px 16px', color: 'var(--blue)', fontWeight: 700 }}>{st.done} บท</td>
                             </tr>

@@ -1,6 +1,6 @@
 import { restSelect } from '@/lib/neon-dataapi';
 
-export type TeacherStudent = { name: string; pin: string; stars: number; done: number };
+export type TeacherStudent = { id: number; name: string; pin: string; stars: number; done: number; locked: boolean };
 export type TeacherClass = { id: number; name: string; join_code: string; students: TeacherStudent[] };
 
 // Aggregate a teacher's classes + roster + progress through the Data API with
@@ -8,7 +8,7 @@ export type TeacherClass = { id: number; name: string; join_code: string; studen
 export async function getTeacherDashboard(jwt: string): Promise<TeacherClass[]> {
   const [classes, students, progress] = await Promise.all([
     restSelect('classes', 'select=id,name,join_code&order=created_at.asc', jwt),
-    restSelect('students', 'select=id,name,class_code,pin&auth_id=not.is.null&limit=5000', jwt),
+    restSelect('students', 'select=id,name,class_code,pin,pin_fails&auth_id=not.is.null&limit=5000', jwt),
     restSelect('progress', 'select=student_id,stars,competence_code&limit=50000', jwt),
   ]);
 
@@ -24,7 +24,7 @@ export async function getTeacherDashboard(jwt: string): Promise<TeacherClass[]> 
   for (const st of students) {
     const agg = perStudent.get(st.id) ?? { stars: 0, comps: new Set<string>() };
     const arr = byClass.get(st.class_code) ?? [];
-    arr.push({ name: st.name, pin: st.pin ?? '', stars: agg.stars, done: agg.comps.size });
+    arr.push({ id: st.id, name: st.name, pin: st.pin ?? '', stars: agg.stars, done: agg.comps.size, locked: (st.pin_fails ?? 0) >= 10 });
     byClass.set(st.class_code, arr);
   }
 

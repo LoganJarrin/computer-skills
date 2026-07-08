@@ -13,6 +13,7 @@ export default function AuthGate() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
+  const [code, setCode] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -21,10 +22,10 @@ export default function AuthGate() {
     setBusy(true); setErr('');
     try {
       if (mode === 'up') {
-        // gated server-side to the allowlisted admin emails
+        // gated server-side: allowlisted admin email + shared security code
         const r = await fetch('/api/teacher/register', {
           method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ email, password: pw, name: name || email }),
+          body: JSON.stringify({ email, password: pw, name: name || email, code }),
         });
         const d = await r.json();
         if (!d.ok) { setErr(d.error || 'สร้างบัญชีไม่สำเร็จ'); setBusy(false); return; }
@@ -54,7 +55,8 @@ export default function AuthGate() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {mode === 'up' && <input style={input} placeholder="ชื่อคุณครู" value={name} onChange={(e) => setName(e.target.value)} />}
               <input style={input} type="email" placeholder="อีเมล" value={email} onChange={(e) => setEmail(e.target.value)} />
-              <input style={input} type="password" placeholder="รหัสผ่าน" value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} />
+              <input style={input} type="password" placeholder="รหัสผ่าน" value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={(e) => mode === 'in' && e.key === 'Enter' && submit()} />
+              {mode === 'up' && <input style={input} type="password" placeholder="รหัสรักษาความปลอดภัย (จากผู้ดูแล)" value={code} onChange={(e) => setCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} />}
               {err && <div style={{ color: '#C23B2A', fontFamily: 'Sarabun', fontSize: 14 }}>{err}</div>}
               <button className="btn3d" style={{ opacity: busy ? 0.6 : 1 }} onClick={submit} disabled={busy}>
                 {busy ? 'กำลังดำเนินการ…' : mode === 'in' ? 'เข้าสู่ระบบ' : 'สร้างบัญชี'}
