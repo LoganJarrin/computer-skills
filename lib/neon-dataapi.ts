@@ -32,3 +32,18 @@ export async function restInsert(table: string, row: Record<string, unknown>, jw
   if (!r.ok) throw new Error(`data-api insert ${table} ${r.status}`);
   return { rows: await r.json() };
 }
+
+// Upsert on a unique key (RLS still applies via WITH CHECK — a student can only
+// write rows that belong to them).
+export async function restUpsert(table: string, row: Record<string, unknown>, onConflict: string, jwt: string): Promise<void> {
+  const r = await fetch(`${BASE}/${table}?on_conflict=${onConflict}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${jwt}`,
+      'content-type': 'application/json',
+      Prefer: 'resolution=merge-duplicates,return=minimal',
+    },
+    body: JSON.stringify(row),
+  });
+  if (!r.ok) throw new Error(`data-api upsert ${table} ${r.status}`);
+}

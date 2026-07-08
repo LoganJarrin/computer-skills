@@ -1,7 +1,10 @@
-// Progress is stored in localStorage (works with no DB) and best-effort synced
-// to Neon via /api/progress when a student name is set.
+// Progress lives in localStorage (works offline / for anonymous play) and, for a
+// logged-in student, is synced to Neon through the authenticated Data API so RLS
+// guarantees a child can only ever write their own progress.
 
-export type Student = { name: string; classCode: string };
+import { authClient } from '@/lib/auth/client';
+
+export type Student = { name: string; classCode: string; studentId?: number; authed?: boolean };
 export type ProgressEntry = { stars: number; correct: number; total: number };
 
 const STUDENT_KEY = 'cs_student';
@@ -13,6 +16,14 @@ export function getStudent(): Student | null {
 }
 export function setStudent(s: Student) {
   if (typeof window !== 'undefined') { try { localStorage.setItem(STUDENT_KEY, JSON.stringify(s)); } catch {} }
+}
+export function clearStudent() {
+  if (typeof window === 'undefined') return;
+  try { localStorage.removeItem(STUDENT_KEY); localStorage.removeItem(PROGRESS_KEY); } catch {}
+}
+
+async function getToken(): Promise<string | null> {
+  try { const t = (await authClient.token()) as any; return t?.data?.token ?? null; } catch { return null; }
 }
 
 export function getProgressMap(): Record<string, ProgressEntry> {
@@ -29,12 +40,15 @@ export function saveProgress(areaNum: number, code: string, stars: number, corre
     localStorage.setItem(PROGRESS_KEY, JSON.stringify(map));
   } catch {}
   const st = getStudent();
-  if (st && st.name) {
-    fetch('/api/progress', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: st.name, classCode: st.classCode, areaNum, code, stars, correct, total }),
-    }).catch(() => {});
+  if (st?.authed && st.studentId) {
+    getToken().then((token) => {
+      if (!token) return;
+      fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
+        body: JSON.stringify({ student_id: st.studentId, competence_code: code, area_num: areaNum, stars, correct, total }),
+      }).catch(() => {});
+    });
   }
 }
 
@@ -44,12 +58,16 @@ export function areaStars(codes: string[]): number {
   return codes.reduce((s, c) => s + (map[c]?.stars || 0), 0);
 }
 
-// Pull a student's saved progress from the server into localStorage (cross-device
-// restore when a kid logs into their class on a shared/new device).
-export async function syncFromServer(name: string, classCode: string): Promise<void> {
-  if (typeof window === 'undefined' || !name) return;
+// Pull the logged-in student's saved progress from the server into localStorage
+// (cross-device restore — their real account carries progress to any device).
+export async function syncFromServer(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  const st = getStudent();
+  if (!st?.authed) return;
+  const token = await getToken();
+  if (!token) return;
   try {
-    const r = await fetch(`/api/progress?name=${encodeURIComponent(name)}&classCode=${encodeURIComponent(classCode)}`);
+    const r = await fetch('/api/progress', { headers: { authorization: 'Bearer ' + token } });
     const d = await r.json();
     if (!d?.ok || !Array.isArray(d.rows)) return;
     const map = getProgressMap();
@@ -58,6 +76,6 @@ export async function syncFromServer(name: string, classCode: string): Promise<v
       const prev = map[code]?.stars || 0;
       map[code] = { stars: Math.max(prev, row.stars || 0), correct: row.correct || 0, total: row.total || 0 };
     }
-    localStorage.setItem('cs_progress', JSON.stringify(map));
+    localStorage.setItem(PROGRESS_KEY, JSON.stringify(map));
   } catch {}
 }

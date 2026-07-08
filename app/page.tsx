@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import TopBar from '@/components/TopBar';
+import StudentLogin from '@/components/StudentLogin';
 import { AREAS, DIGCOMP_AREAS } from '@/lib/content';
-import { getStudent, setStudent, syncFromServer } from '@/lib/progress';
+import { getStudent, clearStudent, type Student } from '@/lib/progress';
+import { authClient } from '@/lib/auth/client';
 import { areaStarsFor, touchStreak, getStreak, getDaily } from '@/lib/gamify';
 
 type Style = { orb: string; accent: string; accentL: string; edge: string; desc: string };
@@ -17,20 +19,12 @@ const AREA_STYLE: Record<number, Style> = {
   5: { orb: 'linear-gradient(135deg,#D9F3E0,#B4E6C2)', accent: '#2E9A57', accentL: '#46BD73', edge: '#227A44', desc: 'แก้ปัญหาเครื่อง · เลือกเครื่องมือ · คิดใหม่' },
 };
 
-const inputStyle: React.CSSProperties = { padding: '11px 14px', border: '1.5px solid var(--line)', borderRadius: 12, fontFamily: 'Sarabun', fontSize: 15, background: '#FFFDF6', minWidth: 110, flex: 1 };
-
 export default function Home() {
   const [streak, setStreak] = useState(0);
   const [daily, setDaily] = useState({ done: 0, goal: 3 });
   const [pct, setPct] = useState<Record<number, number>>({});
   const [digcompStars, setDigcompStars] = useState(0);
-  const [name, setName] = useState<string | null>(null);
-  const [nameInput, setNameInput] = useState('');
-  const [codeInput, setCodeInput] = useState('');
-  const [pinInput, setPinInput] = useState('');
-  const [needPin, setNeedPin] = useState(false);
-  const [err, setErr] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [student, setStudentState] = useState<Student | null>(null);
 
   function loadStats() {
     setStreak(getStreak());
@@ -44,32 +38,13 @@ export default function Home() {
   useEffect(() => {
     touchStreak();
     loadStats();
-    setName(getStudent()?.name ?? null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setStudentState(getStudent());
   }, []);
 
-  async function saveName() {
-    const n = nameInput.trim();
-    if (!n) { setErr('ใส่ชื่อเล่นก่อนนะ'); return; }
-    const code = codeInput.trim().toUpperCase();
-    setErr(''); setBusy(true);
-    if (code) {
-      try {
-        const r = await fetch('/api/class/join', {
-          method: 'POST', headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ joinCode: code, name: n, pin: pinInput.trim() }),
-        });
-        const d = await r.json();
-        if (!d.ok) { setErr(d.error || 'เข้าห้องไม่สำเร็จ'); setNeedPin(!!d.needPin); setBusy(false); return; }
-        setStudent({ name: n, classCode: code });
-        await syncFromServer(n, code);
-        setName(n); loadStats();
-      } catch { setErr('เชื่อมต่อไม่ได้ ลองใหม่'); }
-      setBusy(false);
-    } else {
-      setStudent({ name: n, classCode: '' });
-      setName(n); loadStats(); setBusy(false);
-    }
+  async function logout() {
+    clearStudent();
+    try { await authClient.signOut(); } catch {}
+    window.location.reload();
   }
 
   function areaCard(a: (typeof AREAS)[number]) {
@@ -96,6 +71,7 @@ export default function Home() {
   }
 
   const basics = AREAS.find((a) => a.num === 0);
+  const name = student?.name ?? null;
 
   return (
     <div className="page">
@@ -117,21 +93,17 @@ export default function Home() {
               </div>
             </div>
 
-            {!name && (
-              <div style={{ background: '#fff', border: '2px solid var(--line)', borderBottomWidth: 5, borderRadius: 18, padding: '16px 20px', marginBottom: 24 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 30 }}>👋</span>
-                  <div style={{ flex: 1, minWidth: 170 }}>
-                    <div style={{ fontFamily: 'Mitr', fontWeight: 700, fontSize: 16, color: 'var(--ink)' }}>ใส่ชื่อเพื่อเริ่มเรียน</div>
-                    <div style={{ fontFamily: 'Sarabun', fontSize: 13, color: 'var(--muted2)' }}>มีรหัสห้องจากครูก็ใส่ได้ · ไม่มีก็เรียนได้เลย</div>
-                  </div>
-                  <input style={inputStyle} placeholder="ชื่อเล่น" value={nameInput} onChange={(e) => setNameInput(e.target.value)} />
-                  <input style={{ ...inputStyle, textTransform: 'uppercase' }} placeholder="รหัสห้อง (ถ้ามี)" value={codeInput} onChange={(e) => setCodeInput(e.target.value)} />
-                  {needPin && <input style={{ ...inputStyle, maxWidth: 110 }} placeholder="PIN 4 หลัก" value={pinInput} onChange={(e) => setPinInput(e.target.value)} />}
-                  <button className="btn3d blue" style={{ padding: '12px 22px', opacity: busy ? 0.6 : 1 }} onClick={saveName} disabled={busy}>{busy ? '...' : 'เริ่ม'}</button>
+            {student?.authed ? (
+              <div style={{ background: '#fff', border: '2px solid var(--line)', borderBottomWidth: 5, borderRadius: 18, padding: '14px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ fontSize: 26 }}>🙋</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'Mitr', fontWeight: 700, fontSize: 16 }}>สวัสดี {student.name}</div>
+                  <div style={{ fontFamily: 'Sarabun', fontSize: 13, color: 'var(--muted2)' }}>ความก้าวหน้าของหนูถูกบันทึกไว้แล้ว</div>
                 </div>
-                {err && <div style={{ color: '#C23B2A', fontFamily: 'Sarabun', fontSize: 14, marginTop: 10 }}>{err}</div>}
+                <button className="btn-ghost3d" style={{ padding: '9px 16px', fontSize: 14 }} onClick={logout}>ออกจากระบบ</button>
               </div>
+            ) : (
+              <StudentLogin onLoggedIn={() => window.location.reload()} />
             )}
 
             {basics && (

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSql } from '@/lib/db';
+import { restSelect, restUpsert } from '@/lib/neon-dataapi';
 import { rateLimit, clientKey } from '@/lib/ratelimit';
 
 function clampInt(v: unknown, min: number, max: number): number {
@@ -8,38 +8,35 @@ function clampInt(v: unknown, min: number, max: number): number {
   return Math.max(min, Math.min(max, n));
 }
 
+function bearer(req: NextRequest): string {
+  return (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+}
+
+// Save a logged-in student's progress through the Data API with their JWT.
+// RLS WITH CHECK ties every row to the caller's own student record — a child
+// cannot write another child's progress even by sending a different student_id.
 export async function POST(req: NextRequest) {
-  const sql = getSql();
-  if (!sql) return NextResponse.json({ ok: false, db: false });
-  if (!rateLimit(`prog:${clientKey(req)}`, 40, 60_000))
+  if (!rateLimit(`prog:${clientKey(req)}`, 120, 60_000))
     return NextResponse.json({ ok: false, error: 'too many requests' }, { status: 429 });
+  const jwt = bearer(req);
+  if (!jwt) return NextResponse.json({ ok: false, error: 'no token' }, { status: 401 });
 
   let raw: unknown;
   try { raw = await req.json(); } catch { return NextResponse.json({ ok: false, error: 'bad request' }, { status: 400 }); }
   const b = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
 
-  const name = String(b.name ?? '').trim().slice(0, 60);
-  const classCode = String(b.classCode ?? '').trim().slice(0, 30);
-  if (!name) return NextResponse.json({ ok: false, error: 'name required' }, { status: 400 });
-
-  const areaNum = clampInt(b.areaNum, 0, 99);
-  const code = String(b.code ?? '').slice(0, 10);
+  const studentId = clampInt(b.student_id, 1, 2_000_000_000);
+  const code = String(b.competence_code ?? '').slice(0, 40);
+  const areaNum = clampInt(b.area_num, 0, 99);
   const stars = clampInt(b.stars, 0, 3);
   const correct = clampInt(b.correct, 0, 999);
   const total = clampInt(b.total, 0, 999);
+  if (!code) return NextResponse.json({ ok: false, error: 'code required' }, { status: 400 });
 
   try {
-    const s = (await sql`
-      INSERT INTO students (name, class_code) VALUES (${name}, ${classCode})
-      ON CONFLICT (name, class_code) DO UPDATE SET name = EXCLUDED.name
-      RETURNING id`) as { id: number }[];
-    const studentId = s[0].id;
-    await sql`
-      INSERT INTO progress (student_id, area_num, competence_code, stars, correct, total)
-      VALUES (${studentId}, ${areaNum}, ${code}, ${stars}, ${correct}, ${total})
-      ON CONFLICT (student_id, competence_code) DO UPDATE SET
-        stars = GREATEST(progress.stars, EXCLUDED.stars),
-        correct = EXCLUDED.correct, total = EXCLUDED.total, updated_at = now()`;
+    const cur = await restSelect('progress', `student_id=eq.${studentId}&competence_code=eq.${encodeURIComponent(code)}&select=stars`, jwt);
+    const best = Math.max(stars, cur[0]?.stars ?? 0);
+    await restUpsert('progress', { student_id: studentId, area_num: areaNum, competence_code: code, stars: best, correct, total }, 'student_id,competence_code', jwt);
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('progress POST failed:', e);
@@ -47,22 +44,14 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// A logged-in student's own progress (RLS scopes it to them).
 export async function GET(req: NextRequest) {
-  const sql = getSql();
-  if (!sql) return NextResponse.json({ ok: false, db: false, rows: [] });
   if (!rateLimit(`progget:${clientKey(req)}`, 60, 60_000))
-    return NextResponse.json({ ok: false, error: 'too many requests', rows: [] }, { status: 429 });
-
-  const { searchParams } = new URL(req.url);
-  const name = (searchParams.get('name') ?? '').trim().slice(0, 60);
-  const classCode = (searchParams.get('classCode') ?? '').trim().slice(0, 30);
-  if (!name) return NextResponse.json({ ok: true, rows: [] });
+    return NextResponse.json({ ok: false, rows: [] }, { status: 429 });
+  const jwt = bearer(req);
+  if (!jwt) return NextResponse.json({ ok: true, rows: [] });
   try {
-    const rows = await sql`
-      SELECT p.area_num, p.competence_code, p.stars, p.correct, p.total
-      FROM progress p JOIN students s ON s.id = p.student_id
-      WHERE s.name = ${name} AND s.class_code = ${classCode}
-      ORDER BY p.area_num, p.competence_code`;
+    const rows = await restSelect('progress', 'select=area_num,competence_code,stars,correct,total&limit=1000', jwt);
     return NextResponse.json({ ok: true, rows });
   } catch (e) {
     console.error('progress GET failed:', e);

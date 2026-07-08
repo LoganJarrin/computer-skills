@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   try {
     const [classes, students, progress] = await Promise.all([
       restSelect('classes', 'select=id,name,join_code&order=created_at.asc', jwt),
-      restSelect('students', 'select=id,name,class_code&limit=5000', jwt),
+      restSelect('students', 'select=id,name,class_code,pin&auth_id=not.is.null&limit=5000', jwt),
       restSelect('progress', 'select=student_id,stars,competence_code&limit=50000', jwt),
     ]);
 
@@ -34,11 +34,11 @@ export async function GET(req: NextRequest) {
       if (p.competence_code) e.comps.add(p.competence_code);
     }
 
-    const byClass = new Map<string, { name: string; stars: number; done: number }[]>();
+    const byClass = new Map<string, { name: string; pin: string; stars: number; done: number }[]>();
     for (const st of students) {
       const agg = perStudent.get(st.id) ?? { stars: 0, comps: new Set<string>() };
       const arr = byClass.get(st.class_code) ?? [];
-      arr.push({ name: st.name, stars: agg.stars, done: agg.comps.size });
+      arr.push({ name: st.name, pin: st.pin ?? '', stars: agg.stars, done: agg.comps.size });
       byClass.set(st.class_code, arr);
     }
 

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { authClient } from '@/lib/auth/client';
 import SignOutBtn from '@/components/teacher/SignOutBtn';
 
-type Student = { name: string; stars: number; done: number };
+type Student = { name: string; pin: string; stars: number; done: number };
 type ClassData = { id: number; name: string; join_code: string; students: Student[] };
 
 export default function TeacherDashboard({ userLabel }: { userLabel: string }) {
@@ -14,6 +14,9 @@ export default function TeacherDashboard({ userLabel }: { userLabel: string }) {
   const [err, setErr] = useState('');
   const [newName, setNewName] = useState('');
   const [creating, setCreating] = useState(false);
+  const [addName, setAddName] = useState<Record<string, string>>({});
+  const [addBusy, setAddBusy] = useState('');
+  const [justAdded, setJustAdded] = useState<{ code: string; name: string; pin: string } | null>(null);
 
   const getToken = useCallback(async () => {
     const t = (await authClient.token()) as any;
@@ -54,6 +57,26 @@ export default function TeacherDashboard({ userLabel }: { userLabel: string }) {
     setCreating(false);
   }
 
+  async function addStudent(code: string) {
+    const n = (addName[code] || '').trim();
+    if (!n) return;
+    setAddBusy(code); setErr('');
+    try {
+      const token = await getToken();
+      const r = await fetch('/api/teacher/students', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + (token ?? '') },
+        body: JSON.stringify({ joinCode: code, name: n }),
+      });
+      const d = await r.json();
+      if (!d.ok) { setErr(d.error || 'เพิ่มนักเรียนไม่สำเร็จ'); setAddBusy(''); return; }
+      setAddName((m) => ({ ...m, [code]: '' }));
+      setJustAdded({ code, name: d.student.name, pin: d.student.pin });
+      await load();
+    } catch (e: any) { setErr(e?.message || 'ผิดพลาด'); }
+    setAddBusy('');
+  }
+
   return (
     <div className="page">
       <div className="shell">
@@ -73,7 +96,7 @@ export default function TeacherDashboard({ userLabel }: { userLabel: string }) {
               <span style={{ fontSize: 26 }}>➕</span>
               <div style={{ flex: 1, minWidth: 160 }}>
                 <div style={{ fontFamily: 'Mitr', fontWeight: 700, fontSize: 16 }}>สร้างห้องเรียนใหม่</div>
-                <div style={{ fontFamily: 'Sarabun', fontSize: 13, color: 'var(--muted2)' }}>ตั้งชื่อห้อง แล้วแจกรหัสให้นักเรียน</div>
+                <div style={{ fontFamily: 'Sarabun', fontSize: 13, color: 'var(--muted2)' }}>ตั้งชื่อห้อง แล้วเพิ่มนักเรียนด้านล่าง</div>
               </div>
               <input style={{ padding: '11px 14px', border: '1.5px solid var(--line)', borderRadius: 12, fontFamily: 'Sarabun', fontSize: 15, background: '#FFFDF6', minWidth: 140, flex: 1 }}
                 placeholder="เช่น ป.5/2" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && createClass()} />
@@ -86,7 +109,7 @@ export default function TeacherDashboard({ userLabel }: { userLabel: string }) {
               <div style={{ textAlign: 'center', color: 'var(--muted2)', padding: '30px 0', fontFamily: 'Sarabun' }}>กำลังโหลด…</div>
             ) : classes.length === 0 ? (
               <div style={{ textAlign: 'center', color: 'var(--muted2)', padding: '30px 0', fontFamily: 'Sarabun' }}>
-                ยังไม่มีห้องเรียน — สร้างห้องแรกด้านบน แล้วแจกรหัสให้นักเรียนเข้าร่วม
+                ยังไม่มีห้องเรียน — สร้างห้องแรกด้านบน
               </div>
             ) : (
               classes.map((c) => (
@@ -96,10 +119,22 @@ export default function TeacherDashboard({ userLabel }: { userLabel: string }) {
                     <span style={{ fontFamily: 'Sarabun', fontSize: 13, color: 'var(--muted2)' }}>รหัสห้อง:</span>
                     <span style={{ fontFamily: 'Mitr', fontWeight: 700, fontSize: 20, letterSpacing: 3, color: '#fff', background: 'linear-gradient(135deg,#5CD35B,#38A93A)', padding: '6px 16px', borderRadius: 12, boxShadow: '0 4px 0 #2E8B30' }}>{c.join_code}</span>
                   </div>
+
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+                    <input style={{ padding: '10px 14px', border: '1.5px solid var(--line)', borderRadius: 12, fontFamily: 'Sarabun', fontSize: 15, background: '#FFFDF6', flex: 1, minWidth: 140 }}
+                      placeholder="ชื่อนักเรียน" value={addName[c.join_code] || ''} onChange={(e) => setAddName((m) => ({ ...m, [c.join_code]: e.target.value }))} onKeyDown={(e) => e.key === 'Enter' && addStudent(c.join_code)} />
+                    <button className="btn3d blue" style={{ padding: '11px 18px', opacity: addBusy === c.join_code ? 0.6 : 1 }} onClick={() => addStudent(c.join_code)} disabled={addBusy === c.join_code}>+ เพิ่มนักเรียน</button>
+                  </div>
+                  {justAdded && justAdded.code === c.join_code && (
+                    <div style={{ background: '#EAF7EE', border: '1.5px solid #B7ECC4', borderRadius: 12, padding: '10px 14px', marginBottom: 12, fontFamily: 'Sarabun', fontSize: 15 }}>
+                      เพิ่ม <b>{justAdded.name}</b> แล้ว — PIN คือ <b style={{ fontFamily: 'Mitr', letterSpacing: 2, fontSize: 18 }}>{justAdded.pin}</b> (จดไว้ให้นักเรียน)
+                    </div>
+                  )}
+
                   <div className="card3d" style={{ padding: 0, overflow: 'hidden', borderBottomColor: 'var(--line-d)' }}>
                     {c.students.length === 0 ? (
                       <div style={{ padding: 20, textAlign: 'center', color: 'var(--muted2)', fontFamily: 'Sarabun' }}>
-                        ยังไม่มีนักเรียน — แจกรหัส <b>{c.join_code}</b> ให้นักเรียนใส่ในหน้าหลัก
+                        ยังไม่มีนักเรียน — เพิ่มชื่อด้านบน แล้วแจก PIN ให้เด็ก
                       </div>
                     ) : (
                       <div style={{ overflowX: 'auto' }}>
@@ -107,14 +142,16 @@ export default function TeacherDashboard({ userLabel }: { userLabel: string }) {
                           <thead>
                             <tr style={{ background: 'var(--cream)', textAlign: 'left', fontFamily: 'Mitr', fontSize: 14, color: 'var(--muted2)' }}>
                               <th style={{ padding: '12px 16px' }}>นักเรียน</th>
-                              <th style={{ padding: '12px 16px', width: 120 }}>ดาว</th>
-                              <th style={{ padding: '12px 16px', width: 120 }}>บทที่จบ</th>
+                              <th style={{ padding: '12px 16px', width: 90 }}>PIN</th>
+                              <th style={{ padding: '12px 16px', width: 90 }}>ดาว</th>
+                              <th style={{ padding: '12px 16px', width: 90 }}>บทที่จบ</th>
                             </tr>
                           </thead>
                           <tbody>
                             {c.students.map((st, i) => (
                               <tr key={i} style={{ borderTop: '1px solid var(--line)' }}>
                                 <td style={{ padding: '12px 16px', fontWeight: 600, fontSize: 16 }}>{st.name}</td>
+                                <td style={{ padding: '12px 16px', fontFamily: 'Mitr', letterSpacing: 1, color: 'var(--muted2)' }}>{st.pin}</td>
                                 <td style={{ padding: '12px 16px', color: 'var(--green-d)', fontWeight: 700 }}>⭐ {st.stars}</td>
                                 <td style={{ padding: '12px 16px', color: 'var(--blue)', fontWeight: 700 }}>{st.done} บท</td>
                               </tr>
