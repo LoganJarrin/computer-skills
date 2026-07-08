@@ -1,10 +1,9 @@
 // Progress lives in localStorage (works offline / for anonymous play) and, for a
-// logged-in student, is synced to Neon through the authenticated Data API so RLS
-// guarantees a child can only ever write their own progress.
+// logged-in student, is synced to the server. Sync uses only the HttpOnly session
+// cookie — the browser never holds a token, and the server derives which student
+// you are from the session, so a child can only ever write their own progress.
 
-import { authClient } from '@/lib/auth/client';
-
-export type Student = { name: string; classCode: string; studentId?: number; authed?: boolean };
+export type Student = { name: string; classCode: string; authed?: boolean };
 export type ProgressEntry = { stars: number; correct: number; total: number };
 
 const STUDENT_KEY = 'cs_student';
@@ -22,10 +21,6 @@ export function clearStudent() {
   try { localStorage.removeItem(STUDENT_KEY); localStorage.removeItem(PROGRESS_KEY); } catch {}
 }
 
-async function getToken(): Promise<string | null> {
-  try { const t = (await authClient.token()) as any; return t?.data?.token ?? null; } catch { return null; }
-}
-
 export function getProgressMap(): Record<string, ProgressEntry> {
   if (typeof window === 'undefined') return {};
   try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { return {}; }
@@ -40,15 +35,13 @@ export function saveProgress(areaNum: number, code: string, stars: number, corre
     localStorage.setItem(PROGRESS_KEY, JSON.stringify(map));
   } catch {}
   const st = getStudent();
-  if (st?.authed && st.studentId) {
-    getToken().then((token) => {
-      if (!token) return;
-      fetch('/api/progress', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
-        body: JSON.stringify({ student_id: st.studentId, competence_code: code, area_num: areaNum, stars, correct, total }),
-      }).catch(() => {});
-    });
+  if (st?.authed) {
+    // No token, no student id — the session cookie identifies the student server-side.
+    fetch('/api/progress', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ competence_code: code, area_num: areaNum, stars, correct, total }),
+    }).catch(() => {});
   }
 }
 
@@ -59,15 +52,13 @@ export function areaStars(codes: string[]): number {
 }
 
 // Pull the logged-in student's saved progress from the server into localStorage
-// (cross-device restore — their real account carries progress to any device).
+// (cross-device restore). Auth is the session cookie — no token in the browser.
 export async function syncFromServer(): Promise<void> {
   if (typeof window === 'undefined') return;
   const st = getStudent();
   if (!st?.authed) return;
-  const token = await getToken();
-  if (!token) return;
   try {
-    const r = await fetch('/api/progress', { headers: { authorization: 'Bearer ' + token } });
+    const r = await fetch('/api/progress');
     const d = await r.json();
     if (!d?.ok || !Array.isArray(d.rows)) return;
     const map = getProgressMap();

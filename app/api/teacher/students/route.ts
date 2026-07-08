@@ -11,19 +11,6 @@ async function adminUser() {
   return u && isAdmin(u.email) ? u : null;
 }
 
-// List the roster (with PINs) for a class the admin owns.
-export async function GET(req: NextRequest) {
-  const user = await adminUser();
-  if (!user) return NextResponse.json({ ok: false }, { status: 403 });
-  const sql = getSql();
-  if (!sql) return NextResponse.json({ ok: false }, { status: 500 });
-  const code = (new URL(req.url).searchParams.get('code') || '').trim().toUpperCase();
-  const owns = (await sql`SELECT 1 FROM classes WHERE join_code = ${code} AND teacher_id = ${user.id}`) as any[];
-  if (!owns.length) return NextResponse.json({ ok: false, error: 'not your class' }, { status: 403 });
-  const students = (await sql`SELECT id, name, pin FROM students WHERE class_code = ${code} AND auth_id IS NOT NULL ORDER BY name`) as any[];
-  return NextResponse.json({ ok: true, students });
-}
-
 // Create a real student account in a class the admin owns, returning the PIN.
 export async function POST(req: NextRequest) {
   if (!rateLimit(`addstu:${clientKey(req)}`, 60, 60_000))

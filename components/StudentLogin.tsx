@@ -40,7 +40,7 @@ export default function StudentLogin({ onLoggedIn }: { onLoggedIn: () => void })
       });
       const d = await r.json();
       if (!d.ok) { setErr(d.error || 'PIN ไม่ถูกต้อง'); setPin(''); setBusy(false); return; }
-      setStudent({ name: d.name, classCode: code, studentId: d.studentId, authed: true });
+      setStudent({ name: d.name, classCode: code, authed: true });
       await syncFromServer();
       onLoggedIn();
     } catch { setErr('เชื่อมต่อไม่ได้'); setBusy(false); }
