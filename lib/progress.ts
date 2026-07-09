@@ -1,9 +1,7 @@
-// Progress lives in localStorage (works offline / for anonymous play) and, for a
-// logged-in student, is synced to the server. Sync uses only the HttpOnly session
-// cookie — the browser never holds a token, and the server derives which student
-// you are from the session, so a child can only ever write their own progress.
+// Progress lives in localStorage (works offline) and is synced to the server
+// under the student's name + school + grade so teachers can see it. No accounts.
 
-export type Student = { name: string; classCode: string; authed?: boolean };
+export type Student = { name: string; school: string; grade: string };
 export type ProgressEntry = { stars: number; correct: number; total: number };
 
 const STUDENT_KEY = 'cs_student';
@@ -11,7 +9,12 @@ const PROGRESS_KEY = 'cs_progress';
 
 export function getStudent(): Student | null {
   if (typeof window === 'undefined') return null;
-  try { const s = localStorage.getItem(STUDENT_KEY); return s ? JSON.parse(s) : null; } catch { return null; }
+  try {
+    const s = localStorage.getItem(STUDENT_KEY);
+    if (!s) return null;
+    const p = JSON.parse(s);
+    return p && p.name && p.school && p.grade ? p : null;
+  } catch { return null; }
 }
 export function setStudent(s: Student) {
   if (typeof window !== 'undefined') { try { localStorage.setItem(STUDENT_KEY, JSON.stringify(s)); } catch {} }
@@ -35,12 +38,11 @@ export function saveProgress(areaNum: number, code: string, stars: number, corre
     localStorage.setItem(PROGRESS_KEY, JSON.stringify(map));
   } catch {}
   const st = getStudent();
-  if (st?.authed) {
-    // No token, no student id — the session cookie identifies the student server-side.
+  if (st) {
     fetch('/api/progress', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ competence_code: code, area_num: areaNum, stars, correct, total }),
+      body: JSON.stringify({ name: st.name, school: st.school, grade: st.grade, competence_code: code, area_num: areaNum, stars, correct, total }),
     }).catch(() => {});
   }
 }
@@ -51,14 +53,14 @@ export function areaStars(codes: string[]): number {
   return codes.reduce((s, c) => s + (map[c]?.stars || 0), 0);
 }
 
-// Pull the logged-in student's saved progress from the server into localStorage
-// (cross-device restore). Auth is the session cookie — no token in the browser.
+// Pull this student's saved progress from the server into localStorage.
 export async function syncFromServer(): Promise<void> {
   if (typeof window === 'undefined') return;
   const st = getStudent();
-  if (!st?.authed) return;
+  if (!st) return;
   try {
-    const r = await fetch('/api/progress');
+    const q = `name=${encodeURIComponent(st.name)}&school=${encodeURIComponent(st.school)}&grade=${encodeURIComponent(st.grade)}`;
+    const r = await fetch(`/api/progress?${q}`);
     const d = await r.json();
     if (!d?.ok || !Array.isArray(d.rows)) return;
     const map = getProgressMap();

@@ -3,10 +3,9 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import TopBar from '@/components/TopBar';
-import StudentLogin from '@/components/StudentLogin';
+import StudentStart from '@/components/StudentStart';
 import { AREAS } from '@/lib/content';
 import { getStudent, clearStudent, type Student } from '@/lib/progress';
-import { authClient } from '@/lib/auth/client';
 import { areaStarsFor, touchStreak, getStreak, getDaily } from '@/lib/gamify';
 
 type Style = { orb: string; accent: string; accentL: string; edge: string; desc: string };
@@ -18,6 +17,12 @@ const AREA_STYLE: Record<number, Style> = {
   4: { orb: 'linear-gradient(135deg,#FFE2DF,#FFC0B9)', accent: '#F0982E', accentL: '#FFB456', edge: '#D07E1E', desc: 'ปกป้องเครื่อง · ข้อมูล · สุขภาพ · สิ่งแวดล้อม' },
   5: { orb: 'linear-gradient(135deg,#D9F3E0,#B4E6C2)', accent: '#2E9A57', accentL: '#46BD73', edge: '#227A44', desc: 'แก้ปัญหาเครื่อง · เลือกเครื่องมือ · คิดใหม่' },
 };
+
+const GAMES = [
+  { href: '/legacy/unit1-computer-explorer.html', icon: '🖥️', title: 'สำรวจคอมพิวเตอร์', sub: 'รู้จักส่วนต่าง ๆ ของเครื่อง', orb: 'linear-gradient(135deg,#DCE9FF,#A9CCFF)', edge: '#2E64D6' },
+  { href: '/legacy/unit2-click-accuracy-trainer.html', icon: '🖱️', title: 'ฝึกคลิกเมาส์', sub: 'เล็งและคลิกให้แม่นยำ', orb: 'linear-gradient(135deg,#FFE9CC,#FFCF99)', edge: '#D07E1E' },
+  { href: '/legacy/unit3-keyboard-master.html', icon: '⌨️', title: 'ฝึกพิมพ์แป้นพิมพ์', sub: 'พิมพ์ให้เร็วและถูกต้อง', orb: 'linear-gradient(135deg,#E6DCFF,#C9AEFF)', edge: '#7C3EE0' },
+];
 
 export default function Home() {
   const [streak, setStreak] = useState(0);
@@ -41,9 +46,8 @@ export default function Home() {
     setStudentState(getStudent());
   }, []);
 
-  async function logout() {
+  function change() {
     clearStudent();
-    try { await authClient.signOut(); } catch {}
     window.location.reload();
   }
 
@@ -92,17 +96,17 @@ export default function Home() {
               </div>
             </div>
 
-            {student?.authed ? (
+            {student ? (
               <div style={{ background: '#fff', border: '2px solid var(--line)', borderBottomWidth: 5, borderRadius: 18, padding: '14px 20px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontSize: 26 }}>🙋</span>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: 'Mitr', fontWeight: 700, fontSize: 16 }}>สวัสดี {student.name}</div>
-                  <div style={{ fontFamily: 'Sarabun', fontSize: 13, color: 'var(--muted2)' }}>ความก้าวหน้าของหนูถูกบันทึกไว้แล้ว</div>
+                  <div style={{ fontFamily: 'Mitr', fontWeight: 700, fontSize: 16 }}>{student.name}</div>
+                  <div style={{ fontFamily: 'Sarabun', fontSize: 13, color: 'var(--muted2)' }}>{student.school} · {student.grade}</div>
                 </div>
-                <button className="btn-ghost3d" style={{ padding: '9px 16px', fontSize: 14 }} onClick={logout}>ออกจากระบบ</button>
+                <button className="btn-ghost3d" style={{ padding: '9px 16px', fontSize: 14 }} onClick={change}>เปลี่ยน</button>
               </div>
             ) : (
-              <StudentLogin onLoggedIn={() => window.location.reload()} />
+              <StudentStart onDone={() => window.location.reload()} />
             )}
 
             <div className="section">
@@ -115,6 +119,34 @@ export default function Home() {
                 <span className="sec-count" style={{ color: '#fff', background: '#38A93A', boxShadow: '0 4px 0 #2E8B30' }}>{totalStars} / 72 ⭐</span>
               </div>
               <div className="grid3">{AREAS.map(areaCard)}</div>
+            </div>
+
+            <div className="section">
+              <div className="sec-head">
+                <span className="sec-ico" style={{ background: 'linear-gradient(135deg,#FFE9CC,#FFCF99)', boxShadow: '0 5px 0 #FFD9A6' }}>🎮</span>
+                <div style={{ flex: 1 }}>
+                  <h3 className="sec-title">เกมฝึกทักษะ</h3>
+                  <p className="sec-desc">ฝึกใช้เมาส์ แป้นพิมพ์ และรู้จักคอมพิวเตอร์แบบสนุก ๆ</p>
+                </div>
+              </div>
+              <div className="grid3">
+                {GAMES.map((g) => (
+                  <a key={g.href} className="card3d unit" href={g.href} style={{ borderBottomColor: g.edge }}>
+                    <div className="unit-top">
+                      <span className="unit-orb" style={{ background: g.orb }}>{g.icon}</span>
+                      <div>
+                        <div className="unit-lbl" style={{ color: g.edge }}>เกม</div>
+                        <div className="unit-name">{g.title}</div>
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--muted2)', margin: '2px 0 14px' }}>{g.sub}</div>
+                    <div className="unit-foot">
+                      <div className="prog-track" style={{ background: '#EDF2F7' }}><div className="prog-fill" style={{ width: '0%' }} /></div>
+                      <span className="unit-go" style={{ background: `linear-gradient(135deg,${g.orb})`, boxShadow: `0 5px 0 ${g.edge}` }}>▶</span>
+                    </div>
+                  </a>
+                ))}
+              </div>
             </div>
 
             <div style={{ textAlign: 'center', marginTop: 30, fontSize: 13, color: 'var(--muted2)', lineHeight: 1.8 }}>

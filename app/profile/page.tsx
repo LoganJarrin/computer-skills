@@ -13,7 +13,8 @@ const inputStyle: React.CSSProperties = { padding: '11px 14px', border: '1.5px s
 export default function Profile() {
   const [name, setName] = useState('น้องนักเรียน');
   const [nameInput, setNameInput] = useState('');
-  const [classInput, setClassInput] = useState('');
+  const [schoolInput, setSchoolInput] = useState('');
+  const [gradeInput, setGradeInput] = useState('');
   const [saved, setSaved] = useState(false);
   const [stars, setStars] = useState(0);
   const [gems, setGems] = useState(0);
@@ -25,7 +26,7 @@ export default function Profile() {
 
   useEffect(() => {
     const st = getStudent();
-    if (st?.name) { setName(st.name); setNameInput(st.name); setClassInput(st.classCode || ''); }
+    if (st?.name) { setName(st.name); setNameInput(st.name); setSchoolInput(st.school || ''); setGradeInput(st.grade || ''); }
     const s = computeStats();
     setStars(s.stars); setGems(s.gems); setXp(s.xp); setCompleted(s.completed);
     setStreak(getStreak());
@@ -43,9 +44,9 @@ export default function Profile() {
   }, []);
 
   function saveName() {
-    const n = nameInput.trim();
-    if (!n) return;
-    setStudent({ name: n, classCode: classInput.trim() });
+    const n = nameInput.trim(), sc = schoolInput.trim(), gr = gradeInput.trim();
+    if (!n || !sc || !gr) return;
+    setStudent({ name: n, school: sc, grade: gr });
     setName(n); setSaved(true); setTimeout(() => setSaved(false), 1600);
   }
 
@@ -108,9 +109,10 @@ export default function Profile() {
 
             <div style={{ marginTop: 26, background: '#fff', border: '2px solid var(--line)', borderBottomWidth: 5, borderRadius: 18, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 24 }}>✏️</span>
-              <div style={{ flex: 1, minWidth: 150, fontFamily: 'Sarabun', fontSize: 14, color: 'var(--muted2)' }}>{saved ? 'บันทึกแล้ว ✓' : 'เปลี่ยนชื่อหรือห้อง'}</div>
-              <input style={inputStyle} placeholder="ชื่อเล่น" value={nameInput} onChange={(e) => setNameInput(e.target.value)} />
-              <input style={inputStyle} placeholder="ห้อง (ถ้ามี)" value={classInput} onChange={(e) => setClassInput(e.target.value)} />
+              <div style={{ flex: 1, minWidth: 150, fontFamily: 'Sarabun', fontSize: 14, color: 'var(--muted2)' }}>{saved ? 'บันทึกแล้ว ✓' : 'เปลี่ยนชื่อ/โรงเรียน/ชั้น'}</div>
+              <input style={inputStyle} placeholder="ชื่อ" value={nameInput} onChange={(e) => setNameInput(e.target.value)} />
+              <input style={inputStyle} placeholder="โรงเรียน" value={schoolInput} onChange={(e) => setSchoolInput(e.target.value)} />
+              <input style={inputStyle} placeholder="ชั้น เช่น ป.4" value={gradeInput} onChange={(e) => setGradeInput(e.target.value)} />
               <button className="btn3d blue" style={{ padding: '12px 22px' }} onClick={saveName}>บันทึก</button>
             </div>
 

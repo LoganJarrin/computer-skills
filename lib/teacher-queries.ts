@@ -1,35 +1,34 @@
-import { restSelect } from '@/lib/neon-dataapi';
+import { getSql } from '@/lib/db';
 
-export type TeacherStudent = { id: number; name: string; pin: string; stars: number; done: number; locked: boolean };
-export type TeacherClass = { id: number; name: string; join_code: string; students: TeacherStudent[] };
+export type DashStudent = { name: string; stars: number; done: number };
+export type GradeGroup = { grade: string; students: DashStudent[] };
+export type SchoolGroup = { school: string; total: number; grades: GradeGroup[] };
 
-// Aggregate a teacher's classes + roster + progress through the Data API with
-// their JWT. RLS scopes every row to this teacher — there is no WHERE teacher_id.
-export async function getTeacherDashboard(jwt: string): Promise<TeacherClass[]> {
-  const [classes, students, progress] = await Promise.all([
-    restSelect('classes', 'select=id,name,join_code&order=created_at.asc', jwt),
-    restSelect('students', 'select=id,name,class_code,pin,pin_fails&auth_id=not.is.null&limit=5000', jwt),
-    restSelect('progress', 'select=student_id,stars,competence_code&limit=50000', jwt),
-  ]);
+// All self-identified students grouped by school → grade, with progress rollups.
+// Admin-only (the /teacher page gates on isAdmin); read via the owner connection.
+export async function getStudentsBySchool(): Promise<SchoolGroup[]> {
+  const sql = getSql();
+  if (!sql) return [];
+  const rows = (await sql`
+    SELECT s.school, s.grade, s.name,
+      COALESCE(SUM(p.stars), 0)::int AS stars,
+      COUNT(DISTINCT p.competence_code)::int AS done
+    FROM students s LEFT JOIN progress p ON p.student_id = s.id
+    WHERE s.school IS NOT NULL AND s.name NOT LIKE '\\_\\_%'
+    GROUP BY s.id, s.school, s.grade, s.name
+    ORDER BY s.school ASC, s.grade ASC, stars DESC, s.name ASC`) as any[];
 
-  const perStudent = new Map<number, { stars: number; comps: Set<string> }>();
-  for (const p of progress) {
-    let e = perStudent.get(p.student_id);
-    if (!e) { e = { stars: 0, comps: new Set() }; perStudent.set(p.student_id, e); }
-    e.stars += p.stars || 0;
-    if (p.competence_code) e.comps.add(p.competence_code);
+  const schools = new Map<string, Map<string, DashStudent[]>>();
+  for (const r of rows) {
+    if (!schools.has(r.school)) schools.set(r.school, new Map());
+    const grades = schools.get(r.school)!;
+    if (!grades.has(r.grade)) grades.set(r.grade, []);
+    grades.get(r.grade)!.push({ name: r.name, stars: r.stars, done: r.done });
   }
 
-  const byClass = new Map<string, TeacherStudent[]>();
-  for (const st of students) {
-    const agg = perStudent.get(st.id) ?? { stars: 0, comps: new Set<string>() };
-    const arr = byClass.get(st.class_code) ?? [];
-    arr.push({ id: st.id, name: st.name, pin: st.pin ?? '', stars: agg.stars, done: agg.comps.size, locked: (st.pin_fails ?? 0) >= 10 });
-    byClass.set(st.class_code, arr);
-  }
-
-  return classes.map((c: any) => ({
-    id: c.id, name: c.name, join_code: c.join_code,
-    students: (byClass.get(c.join_code) ?? []).sort((a, b) => b.stars - a.stars),
+  return Array.from(schools.entries()).map(([school, grades]) => ({
+    school,
+    total: Array.from(grades.values()).reduce((n, arr) => n + arr.length, 0),
+    grades: Array.from(grades.entries()).map(([grade, students]) => ({ grade, students })),
   }));
 }

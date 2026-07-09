@@ -1,14 +1,9 @@
 import Link from 'next/link';
-import { headers } from 'next/headers';
 import { auth } from '@/lib/auth/server';
 import { isAdmin } from '@/lib/auth/admins';
-import { jwtFromCookie } from '@/lib/auth/jwt';
-import { getTeacherDashboard } from '@/lib/teacher-queries';
+import { getStudentsBySchool } from '@/lib/teacher-queries';
 import AuthGate from '@/components/teacher/AuthGate';
 import SignOutBtn from '@/components/teacher/SignOutBtn';
-import CreateClassForm from '@/components/teacher/CreateClassForm';
-import AddStudentForm from '@/components/teacher/AddStudentForm';
-import UnlockButton from '@/components/teacher/UnlockButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,10 +31,7 @@ export default async function TeacherPage() {
     );
   }
 
-  const h = await headers();
-  const origin = `${h.get('x-forwarded-proto') || 'https'}://${h.get('host')}`;
-  const jwt = await jwtFromCookie(h.get('cookie'), origin);
-  const classes = jwt ? await getTeacherDashboard(jwt) : [];
+  const schools = await getStudentsBySchool();
 
   return (
     <div className="page">
@@ -56,59 +48,50 @@ export default async function TeacherPage() {
             </div>
           </div>
           <div className="appbody">
-            <CreateClassForm />
+            <div style={{ fontFamily: 'Sarabun', fontSize: 14, color: 'var(--muted2)', marginBottom: 20 }}>
+              ความก้าวหน้าของนักเรียนทั้งหมด แยกตามโรงเรียนและชั้น
+            </div>
 
-            {classes.length === 0 && (
+            {schools.length === 0 && (
               <div style={{ textAlign: 'center', color: 'var(--muted2)', padding: '30px 0', fontFamily: 'Sarabun' }}>
-                ยังไม่มีห้องเรียน — สร้างห้องแรกด้านบน
+                ยังไม่มีนักเรียน — เมื่อนักเรียนเริ่มเรียน ชื่อจะปรากฏที่นี่
               </div>
             )}
 
-            {classes.map((c) => (
-              <div key={c.id} style={{ marginBottom: 26 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 12, flexWrap: 'wrap' }}>
-                  <h3 style={{ fontFamily: 'Mitr', fontWeight: 700, fontSize: 22, flex: 1 }}>{c.name}</h3>
-                  <span style={{ fontFamily: 'Sarabun', fontSize: 13, color: 'var(--muted2)' }}>รหัสห้อง:</span>
-                  <span style={{ fontFamily: 'Mitr', fontWeight: 700, fontSize: 20, letterSpacing: 3, color: '#fff', background: 'linear-gradient(135deg,#5CD35B,#38A93A)', padding: '6px 16px', borderRadius: 12, boxShadow: '0 4px 0 #2E8B30' }}>{c.join_code}</span>
+            {schools.map((sc) => (
+              <div key={sc.school} style={{ marginBottom: 30 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                  <span style={{ fontSize: 24 }}>🏫</span>
+                  <h3 style={{ fontFamily: 'Mitr', fontWeight: 700, fontSize: 22, flex: 1 }}>{sc.school}</h3>
+                  <span style={{ fontFamily: 'Sarabun', fontSize: 13, color: 'var(--muted2)' }}>{sc.total} คน</span>
                 </div>
-
-                <AddStudentForm joinCode={c.join_code} />
-
-                <div className="card3d" style={{ padding: 0, overflow: 'hidden', borderBottomColor: 'var(--line-d)' }}>
-                  {c.students.length === 0 ? (
-                    <div style={{ padding: 20, textAlign: 'center', color: 'var(--muted2)', fontFamily: 'Sarabun' }}>
-                      ยังไม่มีนักเรียน — เพิ่มชื่อด้านบน แล้วแจก PIN ให้เด็ก
-                    </div>
-                  ) : (
-                    <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'Sarabun' }}>
-                        <thead>
-                          <tr style={{ background: 'var(--cream)', textAlign: 'left', fontFamily: 'Mitr', fontSize: 14, color: 'var(--muted2)' }}>
-                            <th style={{ padding: '12px 16px' }}>นักเรียน</th>
-                            <th style={{ padding: '12px 16px', width: 90 }}>PIN</th>
-                            <th style={{ padding: '12px 16px', width: 90 }}>ดาว</th>
-                            <th style={{ padding: '12px 16px', width: 90 }}>บทที่จบ</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {c.students.map((st, i) => (
-                            <tr key={i} style={{ borderTop: '1px solid var(--line)' }}>
-                              <td style={{ padding: '12px 16px', fontWeight: 600, fontSize: 16 }}>{st.name}</td>
-                              <td style={{ padding: '12px 16px', fontFamily: 'Mitr', letterSpacing: 1, color: 'var(--muted2)' }}>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                  {st.pin}
-                                  {st.locked && <><span title="ถูกล็อก" style={{ color: '#C23B2A' }}>🔒</span><UnlockButton studentId={st.id} /></>}
-                                </span>
-                              </td>
-                              <td style={{ padding: '12px 16px', color: 'var(--green-d)', fontWeight: 700 }}>⭐ {st.stars}</td>
-                              <td style={{ padding: '12px 16px', color: 'var(--blue)', fontWeight: 700 }}>{st.done} บท</td>
+                {sc.grades.map((g) => (
+                  <div key={g.grade} style={{ marginBottom: 14 }}>
+                    <div style={{ fontFamily: 'Mitr', fontWeight: 700, fontSize: 16, color: 'var(--green-d)', margin: '0 0 8px 4px' }}>ชั้น {g.grade}</div>
+                    <div className="card3d" style={{ padding: 0, overflow: 'hidden', borderBottomColor: 'var(--line-d)' }}>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'Sarabun' }}>
+                          <thead>
+                            <tr style={{ background: 'var(--cream)', textAlign: 'left', fontFamily: 'Mitr', fontSize: 14, color: 'var(--muted2)' }}>
+                              <th style={{ padding: '12px 16px' }}>นักเรียน</th>
+                              <th style={{ padding: '12px 16px', width: 100 }}>ดาว</th>
+                              <th style={{ padding: '12px 16px', width: 100 }}>บทที่จบ</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {g.students.map((st, i) => (
+                              <tr key={i} style={{ borderTop: '1px solid var(--line)' }}>
+                                <td style={{ padding: '12px 16px', fontWeight: 600, fontSize: 16 }}>{st.name}</td>
+                                <td style={{ padding: '12px 16px', color: 'var(--green-d)', fontWeight: 700 }}>⭐ {st.stars}</td>
+                                <td style={{ padding: '12px 16px', color: 'var(--blue)', fontWeight: 700 }}>{st.done} บท</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
-                  )}
-                </div>
+                  </div>
+                ))}
               </div>
             ))}
           </div>
